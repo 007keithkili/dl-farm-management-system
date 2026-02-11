@@ -1,4 +1,4 @@
-# fix_database.py - DATABASE FIX FOR WINDOWS
+﻿# fix_database.py - DATABASE FIX FOR WINDOWS
 import os
 import sys
 from pathlib import Path
@@ -19,7 +19,7 @@ def fix_database():
     
     # Ensure database directory exists
     db_path.parent.mkdir(exist_ok=True)
-    print("✓ Database directory checked")
+    print("âœ“ Database directory checked")
     
     # Check if file exists and has content
     if db_path.exists():
@@ -27,10 +27,10 @@ def fix_database():
         print(f"Database file size: {size} bytes")
         
         if size == 0:
-            print("❌ Database file is EMPTY (0 bytes)")
+            print("âŒ Database file is EMPTY (0 bytes)")
             print("Deleting empty file...")
             db_path.unlink()
-            print("✓ Empty file deleted")
+            print("âœ“ Empty file deleted")
     
     # Create fresh database
     print("\nCreating new database...")
@@ -40,7 +40,7 @@ def fix_database():
         conn = sqlite3.connect(str(db_path))
         cursor = conn.cursor()
         
-        print("✓ Database connection established")
+        print("âœ“ Database connection established")
         
         # Create users table
         cursor.execute('''
@@ -54,7 +54,7 @@ def fix_database():
                 last_login TIMESTAMP
             )
         ''')
-        print("✓ Users table created")
+        print("âœ“ Users table created")
         
         # Create animals table
         cursor.execute('''
@@ -71,7 +71,7 @@ def fix_database():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        print("✓ Animals table created")
+        print("âœ“ Animals table created")
         
         # Create default users
         import hashlib
@@ -89,13 +89,13 @@ def fix_database():
                 'INSERT OR IGNORE INTO user (username, email, password, role) VALUES (?, ?, ?, ?)',
                 (username, email, password, role)
             )
-            print(f"✓ Created user: {username} ({role})")
+            print(f"âœ“ Created user: {username} ({role})")
         
         # Commit changes
         conn.commit()
         conn.close()
         
-        print("\n✅ DATABASE CREATED SUCCESSFULLY!")
+        print("\nâœ… DATABASE CREATED SUCCESSFULLY!")
         print(f"Location: {db_path}")
         
         # Show file info
@@ -103,12 +103,12 @@ def fix_database():
         print(f"File size: {size} bytes")
         
         if size > 0:
-            print("✓ Database is NOT empty - Ready to use!")
+            print("âœ“ Database is NOT empty - Ready to use!")
         else:
-            print("❌ Database is still empty - Something went wrong")
+            print("âŒ Database is still empty - Something went wrong")
             
     except Exception as e:
-        print(f"❌ Error creating database: {e}")
+        print(f"âŒ Error creating database: {e}")
         return False
     
     return True
@@ -121,23 +121,23 @@ def run_application():
     try:
         # Import and run the Flask app
         import app
-        print("✓ Flask app imported successfully")
+        print("âœ“ Flask app imported successfully")
         
         # Run the app
-        print("\n✅ SYSTEM IS NOW RUNNING!")
+        print("\nâœ… SYSTEM IS NOW RUNNING!")
         print("\nOpen your browser and go to: http://localhost:5000")
-        print("\n📋 LOGIN CREDENTIALS:")
+        print("\nðŸ“‹ LOGIN CREDENTIALS:")
         print("   Admin:     admin / admin123")
         print("   Manager:   manager / manager123")
         print("   Accountant: accountant / accountant123")
-        print("\n⚠️  Press Ctrl+C to stop the server")
+        print("\nâš ï¸  Press Ctrl+C to stop the server")
         print("=" * 60)
         
         # Run the app
         app.app.run(debug=True, host='0.0.0.0', port=5000)
         
     except Exception as e:
-        print(f"❌ Error running application: {e}")
+        print(f"âŒ Error running application: {e}")
         return False
 
 def main():
@@ -146,7 +146,7 @@ def main():
     
     # Step 1: Fix database
     if not fix_database():
-        print("\n❌ Database fix failed!")
+        print("\nâŒ Database fix failed!")
         input("Press Enter to exit...")
         return
     

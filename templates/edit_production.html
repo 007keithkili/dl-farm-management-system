@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Edit Record{% endblock %}
+{% block page_title %}Edit Daily Record{% endblock %}
+{% block page_subtitle %}Modify the daily input record{% endblock %}
+
+{% block extra_css %}
+<style>
+.content-card { padding: 20px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+.form-row { display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; }
+@media (max-width:720px) { .form-row { grid-template-columns: 1fr; } }
+
+/* small helper spacing */
+.form-row > div { min-width:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 style="margin:0; color:#1e293b; font-weight:700;">Edit Record {% if record and record.id %}PR-{{ record.id }}{% endif %}</h4>
+      <p class="text-muted mb-0" style="font-size:0.9rem;">Update details and save</p>
+    </div>
+    <div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('view_production', record_id=record.id) }}">Cancel</a>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('edit_production', record_id=record.id) }}" id="editRecordForm">
+    <div class="form-row">
+      <div>
+        <label class="form-label">Date *</label>
+        <input name="record_date" id="record_date" type="date" class="form-control" required
+               value="{{ (record.record_date if record and record.record_date else '') }}">
+      </div>
+
+      <div>
+        <label class="form-label">Recorded By *</label>
+        <input name="recorded_by" class="form-control" required placeholder="Your name"
+               value="{{ record.recorded_by if record else '' }}">
+      </div>
+
+      <div>
+        <label class="form-label">Animal *</label>
+
+        {# Prefer server-provided animals list when available (keeps links unchanged) #}
+        {% if animals is defined and animals %}
+          <select name="animal_id" id="animalSelect" class="form-select" required>
+            <option value="">-- Select animal --</option>
+            {% for a in animals %}
+              {% set selected = false %}
+              {% if record is defined %}
+                {% if record.animal is defined and record.animal and a.id == record.animal.id %}
+                  {% set selected = true %}
+                {% elif record.animal_id is defined and a.id == record.animal_id %}
+                  {% set selected = true %}
+                {% elif record.a_id is defined and a.id == record.a_id %}
+                  {% set selected = true %}
+                {% elif record.animal_name is defined and record.animal_name and (a.breed == record.animal_name or (a.tag_number and a.tag_number == record.animal_name)) %}
+                  {% set selected = true %}
+                {% endif %}
+              {% endif %}
+              <option value="{{ a.id }}" {% if selected %}selected{% endif %}>{{ a.breed }}{% if a.tag_number %} — {{ a.tag_number }}{% endif %}</option>
+            {% endfor %}
+          </select>
+
+        {% else %}
+          {# Fall back to the same grouped list used by the Add modal (keeps compatibility) #}
+          <select name="animal_name" id="animalSelect" class="form-select" required>
+            <option value="">-- Select animal --</option>
+
+            <optgroup label="Cows - Milking">
+              <option value="Nori" {% if record and (record.animal_name == 'Nori' or record.a_breed == 'Nori') %}selected{% endif %}>Nori</option>
+              <option value="Narok" {% if record and (record.animal_name == 'Narok' or record.a_breed == 'Narok') %}selected{% endif %}>Narok</option>
+              <option value="Lolita H" {% if record and (record.animal_name == 'Lolita H' or record.a_breed == 'Lolita H') %}selected{% endif %}>Lolita H</option>
+              <option value="Jane" {% if record and (record.animal_name == 'Jane' or record.a_breed == 'Jane') %}selected{% endif %}>Jane</option>
+              <option value="Mango" {% if record and (record.animal_name == 'Mango' or record.a_breed == 'Mango') %}selected{% endif %}>Mango</option>
+              <option value="Cheptilit" {% if record and (record.animal_name == 'Cheptilit' or record.a_breed == 'Cheptilit') %}selected{% endif %}>Cheptilit</option>
+              <option value="Jamuhuri" {% if record and (record.animal_name == 'Jamuhuri' or record.a_breed == 'Jamuhuri') %}selected{% endif %}>Jamuhuri</option>
+              <option value="1032" {% if record and (record.animal_name == '1032' or record.a_breed == '1032') %}selected{% endif %}>1032</option>
+              <option value="Jeblasgei 5L" {% if record and (record.animal_name == 'Jeblasgei 5L' or record.a_breed == 'Jeblasgei 5L') %}selected{% endif %}>Jeblasgei 5L</option>
+              <option value="Borana" {% if record and (record.animal_name == 'Borana' or record.a_breed == 'Borana') %}selected{% endif %}>Borana</option>
+              <option value="Gloria" {% if record and (record.animal_name == 'Gloria' or record.a_breed == 'Gloria') %}selected{% endif %}>Gloria</option>
+              <option value="Hangera" {% if record and (record.animal_name == 'Hangera' or record.a_breed == 'Hangera') %}selected{% endif %}>Hangera</option>
+              <option value="Hawa" {% if record and (record.animal_name == 'Hawa' or record.a_breed == 'Hawa') %}selected{% endif %}>Hawa</option>
+              <option value="Beloit" {% if record and (record.animal_name == 'Beloit' or record.a_breed == 'Beloit') %}selected{% endif %}>Beloit</option>
+              <option value="Zawadi b" {% if record and (record.animal_name == 'Zawadi b' or record.a_breed == 'Zawadi b') %}selected{% endif %}>Zawadi b</option>
+              <option value="3011" {% if record and (record.animal_name == '3011' or record.a_breed == '3011') %}selected{% endif %}>3011</option>
+              <option value="Ludi" {% if record and (record.animal_name == 'Ludi' or record.a_breed == 'Ludi') %}selected{% endif %}>Ludi</option>
+              <option value="Mickey" {% if record and (record.animal_name == 'Mickey' or record.a_breed == 'Mickey') %}selected{% endif %}>Mickey</option>
+              <option value="2583" {% if record and (record.animal_name == '2583' or record.a_breed == '2583') %}selected{% endif %}>2583</option>
+              <option value="Siangigi 1L" {% if record and (record.animal_name == 'Siangigi 1L' or record.a_breed == 'Siangigi 1L') %}selected{% endif %}>Siangigi 1L</option>
+              <option value="Flavour" {% if record and (record.animal_name == 'Flavour' or record.a_breed == 'Flavour') %}selected{% endif %}>Flavour</option>
+              <option value="Grace" {% if record and (record.animal_name == 'Grace' or record.a_breed == 'Grace') %}selected{% endif %}>Grace</option>
+            </optgroup>
+
+            <optgroup label="Cows - Dry">
+              <option value="Kapenguria" {% if record and (record.animal_name == 'Kapenguria' or record.a_breed == 'Kapenguria') %}selected{% endif %}>Kapenguria</option>
+              <option value="Olmara" {% if record and (record.animal_name == 'Olmara' or record.a_breed == 'Olmara') %}selected{% endif %}>Olmara</option>
+              <option value="1087" {% if record and (record.animal_name == '1087' or record.a_breed == '1087') %}selected{% endif %}>1087</option>
+              <option value="Mercy" {% if record and (record.animal_name == 'Mercy' or record.a_breed == 'Mercy') %}selected{% endif %}>Mercy</option>
+              <option value="Lolita 1" {% if record and (record.animal_name == 'Lolita 1' or record.a_breed == 'Lolita 1') %}selected{% endif %}>Lolita 1</option>
+              <option value="Lotia" {% if record and (record.animal_name == 'Lotia' or record.a_breed == 'Lotia') %}selected{% endif %}>Lotia</option>
+              <option value="Rose" {% if record and (record.animal_name == 'Rose' or record.a_breed == 'Rose') %}selected{% endif %}>Rose</option>
+              <option value="Betsy" {% if record and (record.animal_name == 'Betsy' or record.a_breed == 'Betsy') %}selected{% endif %}>Betsy</option>
+            </optgroup>
+
+            <optgroup label="Steers">
+              <option value="DLS1" {% if record and (record.animal_name == 'DLS1' or record.a_breed == 'DLS1') %}selected{% endif %}>DLS1</option>
+              <option value="DLS2" {% if record and (record.animal_name == 'DLS2' or record.a_breed == 'DLS2') %}selected{% endif %}>DLS2</option>
+              <option value="DLS3" {% if record and (record.animal_name == 'DLS3' or record.a_breed == 'DLS3') %}selected{% endif %}>DLS3</option>
+              <option value="DLS4" {% if record and (record.animal_name == 'DLS4' or record.a_breed == 'DLS4') %}selected{% endif %}>DLS4</option>
+              <option value="DLS5" {% if record and (record.animal_name == 'DLS5' or record.a_breed == 'DLS5') %}selected{% endif %}>DLS5</option>
+              <option value="DLS6" {% if record and (record.animal_name == 'DLS6' or record.a_breed == 'DLS6') %}selected{% endif %}>DLS6</option>
+              <option value="DLS7" {% if record and (record.animal_name == 'DLS7' or record.a_breed == 'DLS7') %}selected{% endif %}>DLS7</option>
+              <option value="DLS8" {% if record and (record.animal_name == 'DLS8' or record.a_breed == 'DLS8') %}selected{% endif %}>DLS8</option>
+            </optgroup>
+
+            <optgroup label="Heifers">
+              <option value="DLH1" {% if record and (record.animal_name == 'DLH1' or record.a_breed == 'DLH1') %}selected{% endif %}>DLH1</option>
+              <option value="DLH2" {% if record and (record.animal_name == 'DLH2' or record.a_breed == 'DLH2') %}selected{% endif %}>DLH2</option>
+              <option value="DLH3" {% if record and (record.animal_name == 'DLH3' or record.a_breed == 'DLH3') %}selected{% endif %}>DLH3</option>
+              <option value="DLH4" {% if record and (record.animal_name == 'DLH4' or record.a_breed == 'DLH4') %}selected{% endif %}>DLH4</option>
+              <option value="DLH6" {% if record and (record.animal_name == 'DLH6' or record.a_breed == 'DLH6') %}selected{% endif %}>DLH6</option>
+              <option value="DLH7" {% if record and (record.animal_name == 'DLH7' or record.a_breed == 'DLH7') %}selected{% endif %}>DLH7</option>
+              <option value="DLH8" {% if record and (record.animal_name == 'DLH8' or record.a_breed == 'DLH8') %}selected{% endif %}>DLH8</option>
+              <option value="DLH9" {% if record and (record.animal_name == 'DLH9' or record.a_breed == 'DLH9') %}selected{% endif %}>DLH9</option>
+              <option value="DLH10" {% if record and (record.animal_name == 'DLH10' or record.a_breed == 'DLH10') %}selected{% endif %}>DLH10</option>
+              <option value="DLH11" {% if record and (record.animal_name == 'DLH11' or record.a_breed == 'DLH11') %}selected{% endif %}>DLH11</option>
+            </optgroup>
+
+            <optgroup label="Calves - Male">
+              <option value="DLMC1" {% if record and (record.animal_name == 'DLMC1' or record.a_breed == 'DLMC1') %}selected{% endif %}>DLMC1</option>
+              <option value="DLMC2" {% if record and (record.animal_name == 'DLMC2' or record.a_breed == 'DLMC2') %}selected{% endif %}>DLMC2</option>
+              <option value="DLMC3" {% if record and (record.animal_name == 'DLMC3' or record.a_breed == 'DLMC3') %}selected{% endif %}>DLMC3</option>
+              <option value="DLMC4" {% if record and (record.animal_name == 'DLMC4' or record.a_breed == 'DLMC4') %}selected{% endif %}>DLMC4</option>
+              <option value="DLMC5" {% if record and (record.animal_name == 'DLMC5' or record.a_breed == 'DLMC5') %}selected{% endif %}>DLMC5</option>
+              <option value="DLMC6" {% if record and (record.animal_name == 'DLMC6' or record.a_breed == 'DLMC6') %}selected{% endif %}>DLMC6</option>
+              <option value="DLMC7" {% if record and (record.animal_name == 'DLMC7' or record.a_breed == 'DLMC7') %}selected{% endif %}>DLMC7</option>
+            </optgroup>
+
+            <optgroup label="Calves - Female">
+              <option value="DLFC1" {% if record and (record.animal_name == 'DLFC1' or record.a_breed == 'DLFC1') %}selected{% endif %}>DLFC1</option>
+              <option value="DLFC2" {% if record and (record.animal_name == 'DLFC2' or record.a_breed == 'DLFC2') %}selected{% endif %}>DLFC2</option>
+              <option value="DLFC3" {% if record and (record.animal_name == 'DLFC3' or record.a_breed == 'DLFC3') %}selected{% endif %}>DLFC3</option>
+              <option value="DLFC4" {% if record and (record.animal_name == 'DLFC4' or record.a_breed == 'DLFC4') %}selected{% endif %}>DLFC4</option>
+              <option value="DLFC5" {% if record and (record.animal_name == 'DLFC5' or record.a_breed == 'DLFC5') %}selected{% endif %}>DLFC5</option>
+              <option value="DLFC6" {% if record and (record.animal_name == 'DLFC6' or record.a_breed == 'DLFC6') %}selected{% endif %}>DLFC6</option>
+              <option value="DLFC7" {% if record and (record.animal_name == 'DLFC7' or record.a_breed == 'DLFC7') %}selected{% endif %}>DLFC7</option>
+              <option value="DLFC8" {% if record and (record.animal_name == 'DLFC8' or record.a_breed == 'DLFC8') %}selected{% endif %}>DLFC8</option>
+              <option value="DLFC9" {% if record and (record.animal_name == 'DLFC9' or record.a_breed == 'DLFC9') %}selected{% endif %}>DLFC9</option>
+              <option value="DLFC10" {% if record and (record.animal_name == 'DLFC10' or record.a_breed == 'DLFC10') %}selected{% endif %}>DLFC10</option>
+              <option value="DLFC11" {% if record and (record.animal_name == 'DLFC11' or record.a_breed == 'DLFC11') %}selected{% endif %}>DLFC11</option>
+              <option value="DLFC12" {% if record and (record.animal_name == 'DLFC12' or record.a_breed == 'DLFC12') %}selected{% endif %}>DLFC12</option>
+            </optgroup>
+          </select>
+        {% endif %}
+      </div>
+
+      <div>
+        <label class="form-label">Production Type *</label>
+        <select name="production_type" id="productionType" class="form-select" required>
+          <option value="milk" {% if record and record.production_type == 'milk' %}selected{% endif %}>Milk Production</option>
+          <option value="feed" {% if record and record.production_type == 'feed' %}selected{% endif %}>Feed Consumption</option>
+          <option value="weight" {% if record and record.production_type == 'weight' %}selected{% endif %}>Weight Measurement</option>
+          <option value="health" {% if record and record.production_type == 'health' %}selected{% endif %}>Health Check</option>
+          <option value="other" {% if record and record.production_type == 'other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Quantity *</label>
+        <input name="quantity" id="quantity" type="number" step="0.01" class="form-control" required
+               value="{{ record.quantity if record and record.quantity is not none else '' }}">
+      </div>
+
+      <div>
+        <label class="form-label">Unit *</label>
+        <input name="unit" id="unitField" class="form-control" required placeholder="kg / L / pcs"
+               value="{{ record.unit if record and record.unit else '' }}">
+      </div>
+
+      <div id="healthStatusField" style="display: none;">
+        <label class="form-label">Health Status</label>
+        <select name="health_status" class="form-select">
+          <option value="excellent" {% if record and record.health_status == 'excellent' %}selected{% endif %}>Excellent</option>
+          <option value="good" {% if record and (record.health_status == 'good' or not record) %}selected{% endif %}>Good</option>
+          <option value="fair" {% if record and record.health_status == 'fair' %}selected{% endif %}>Fair</option>
+          <option value="poor" {% if record and record.health_status == 'poor' %}selected{% endif %}>Poor</option>
+          <option value="critical" {% if record and record.health_status == 'critical' %}selected{% endif %}>Critical</option>
+        </select>
+      </div>
+
+      <div style="grid-column: 1 / -1;">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="4">{{ record.notes if record else '' }}</textarea>
+      </div>
+
+      <div>
+        <label class="form-label">Recorded at (optional)</label>
+        <input name="location" class="form-control" value="{{ record.location if record and record.location else '' }}" placeholder="Barn, paddock, etc.">
+      </div>
+    </div>
+
+    <div class="mt-3" style="display:flex; gap:8px;">
+      <button class="btn btn-primary" type="submit">Save Changes</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('view_production', record_id=record.id) }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const productionTypeSelect = document.getElementById('productionType');
+  const healthStatusField = document.getElementById('healthStatusField');
+  const unitField = document.getElementById('unitField');
+
+  function handleProductionTypeChange() {
+    const type = productionTypeSelect.value;
+    switch(type) {
+      case 'milk':
+        unitField.value = unitField.value || 'L';
+        healthStatusField.style.display = 'none';
+        break;
+      case 'feed':
+        unitField.value = unitField.value || 'kg';
+        healthStatusField.style.display = 'none';
+        break;
+      case 'weight':
+        unitField.value = unitField.value || 'kg';
+        healthStatusField.style.display = 'none';
+        break;
+      case 'health':
+        unitField.value = unitField.value || 'score';
+        healthStatusField.style.display = 'block';
+        break;
+      case 'other':
+        healthStatusField.style.display = 'none';
+        break;
+    }
+  }
+
+  if (productionTypeSelect) {
+    productionTypeSelect.addEventListener('change', handleProductionTypeChange);
+    // run once on load to set correct visibility & unit
+    document.addEventListener('DOMContentLoaded', handleProductionTypeChange);
+    // also run immediately if DOM already loaded
+    if (document.readyState !== 'loading') handleProductionTypeChange();
+  }
+
+  // Basic client-side validation to match Add modal behavior
+  const form = document.getElementById('editRecordForm');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const qty = parseFloat((this.querySelector('[name="quantity"]').value || '0').trim());
+      if (!(qty > 0)) {
+        e.preventDefault();
+        alert('Please enter a valid quantity greater than 0');
+        return false;
+      }
+      return true;
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -1,4 +1,4 @@
-# deploy_simple.py - SIMPLE DEPLOYMENT
+﻿# deploy_simple.py - SIMPLE DEPLOYMENT
 import os
 import sys
 import subprocess
@@ -23,26 +23,26 @@ def check_requirements():
     
     try:
         import flask
-        print("✓ Flask is already installed")
+        print("âœ“ Flask is already installed")
     except ImportError:
         print("Installing Flask...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "flask"])
     
     try:
         import flask_sqlalchemy
-        print("✓ Flask-SQLAlchemy is already installed")
+        print("âœ“ Flask-SQLAlchemy is already installed")
     except ImportError:
         print("Installing Flask-SQLAlchemy...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "Flask-SQLAlchemy"])
     
     try:
         import flask_login
-        print("✓ Flask-Login is already installed")
+        print("âœ“ Flask-Login is already installed")
     except ImportError:
         print("Installing Flask-Login...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "Flask-Login"])
     
-    print("✓ All requirements checked")
+    print("âœ“ All requirements checked")
 
 def setup_database():
     """Setup database folder"""
@@ -52,10 +52,10 @@ def setup_database():
     db_path.parent.mkdir(exist_ok=True)
     
     if db_path.exists():
-        print("✓ Database file already exists")
+        print("âœ“ Database file already exists")
     else:
         db_path.touch()
-        print("✓ Created new database file")
+        print("âœ“ Created new database file")
     
     return True
 
@@ -104,13 +104,13 @@ def create_default_data():
                         role=user_data['role']
                     )
                     db.session.add(user)
-                    print(f"✓ Created {user_data['role']} user: {user_data['username']}")
+                    print(f"âœ“ Created {user_data['role']} user: {user_data['username']}")
             
             db.session.commit()
-            print("✓ Database setup complete")
+            print("âœ“ Database setup complete")
             
     except Exception as e:
-        print(f"✗ Error setting up database: {e}")
+        print(f"âœ— Error setting up database: {e}")
         return False
     
     return True
@@ -119,13 +119,13 @@ def start_application():
     """Start the Flask application"""
     print("\n4. Starting DL Farm Management System...")
     print("=" * 60)
-    print("\n✅ SYSTEM IS NOW RUNNING!")
+    print("\nâœ… SYSTEM IS NOW RUNNING!")
     print("\nOpen your browser and go to: http://localhost:5000")
-    print("\n📋 LOGIN CREDENTIALS:")
+    print("\nðŸ“‹ LOGIN CREDENTIALS:")
     print("   Admin:     admin / admin123")
     print("   Manager:   manager / manager123")
     print("   Accountant: accountant / accountant123")
-    print("\n⚠️  Press Ctrl+C to stop the server")
+    print("\nâš ï¸  Press Ctrl+C to stop the server")
     print("=" * 60)
     
     # Open browser automatically
@@ -147,10 +147,10 @@ def main():
         create_default_data()
         start_application()
     except KeyboardInterrupt:
-        print("\n\n⚠️  Deployment cancelled by user")
+        print("\n\nâš ï¸  Deployment cancelled by user")
         sys.exit(0)
     except Exception as e:
-        print(f"\n❌ ERROR: {e}")
+        print(f"\nâŒ ERROR: {e}")
         print("\nTry these solutions:")
         print("1. Make sure Python 3.8+ is installed")
         print("2. Run as administrator if on Windows")

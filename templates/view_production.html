@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}View Record{% endblock %}
+{% block page_title %}Record Details{% endblock %}
+{% block page_subtitle %}View a single daily input record{% endblock %}
+
+{% block extra_css %}
+<style>
+.content-card { padding: 20px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+.detail-row { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
+.detail-card { background:white; border-radius:10px; padding:14px; box-shadow:0 6px 18px rgba(2,6,23,0.03); flex:1; min-width:240px; }
+.detail-label { color:#64748b; font-size:0.85rem; font-weight:600; }
+.detail-value { font-weight:700; font-size:1.05rem; color:#0b2540; margin-top:6px; }
+.actions { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; }
+.status-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle; }
+.status-healthy { background:#10b981; }
+.status-warning { background:#f59e0b; }
+.status-danger { background:#ef4444; }
+
+/* Category badges (kept inline so view matches list page) */
+.badge-cow { background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%); color: white; padding:4px 8px; border-radius:8px; font-weight:700; font-size:0.85rem; }
+.badge-steer { background: linear-gradient(135deg,#8b5cf6 0%,#7c3aed 100%); color:white; padding:4px 8px; border-radius:8px; font-weight:700; font-size:0.85rem; }
+.badge-heifer { background: linear-gradient(135deg,#10b981 0%,#059669 100%); color:white; padding:4px 8px; border-radius:8px; font-weight:700; font-size:0.85rem; }
+.badge-calf { background: linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%); color:white; padding:4px 8px; border-radius:8px; font-weight:700; font-size:0.85rem; }
+.badge-neutral { background:#64748b;color:white;padding:4px 8px;border-radius:8px;font-weight:700;font-size:0.85rem; }
+
+/* Responsive tweaks */
+@media (max-width:720px) {
+  .detail-row { flex-direction:column; }
+  .actions { justify-content:flex-start; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 style="margin:0; color:#1e293b; font-weight:700;">Record PR-{{ record.id }}</h4>
+      <p class="text-muted mb-0" style="font-size:0.9rem;">Details for this daily input</p>
+    </div>
+    <div class="text-end">
+      <a href="{{ url_for('production_list') }}" class="btn btn-outline-secondary">Back to records</a>
+    </div>
+  </div>
+
+  <div class="detail-row">
+    <div class="detail-card">
+      <div class="detail-label">Date</div>
+      <div class="detail-value">{{ record.record_date or '—' }}</div>
+
+      <div style="margin-top:10px;">
+        <div class="detail-label">Production Type</div>
+        <div class="detail-value" style="font-weight:600;">
+          <span class="badge bg-info" style="font-weight:700; font-size:0.9rem; padding:6px 10px;">
+            {{ record.production_type | default('General') | capitalize }}
+          </span>
+          {% if record.health_status %}
+            <span style="margin-left:8px;">
+              <span class="status-dot {% if record.health_status in ['excellent','good'] %}status-healthy{% elif record.health_status in ['fair','poor'] %}status-warning{% else %}status-danger{% endif %}"></span>
+              <small style="font-weight:600; color:#475569;">{{ record.health_status | capitalize }}</small>
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-label">Animal</div>
+      <div class="detail-value">
+        {% if record.animal is defined and record.animal %}
+          <strong>{{ record.animal.breed }}</strong>{% if record.animal.tag_number %} <small class="text-muted">({{ record.animal.tag_number }})</small>{% endif %}
+        {% elif record.a_breed or record.a_tag %}
+          <strong>{{ record.a_breed or ('#' ~ (record.a_id or '')) }}</strong>{% if record.a_tag %} <small class="text-muted">({{ record.a_tag }})</small>{% endif %}
+        {% elif record.animal_name %}
+          <strong>{{ record.animal_name }}</strong>
+        {% else %}
+          —
+        {% endif %}
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="detail-label">Category</div>
+        <div class="detail-value" style="font-weight:600;">
+          {% set category = record.animal_category or record.category or 'Unknown' %}
+          {% if category == 'Cow' %}
+            <span class="badge-cow">Cow</span>
+          {% elif category == 'Steer' %}
+            <span class="badge-steer">Steer</span>
+          {% elif category == 'Heifer' %}
+            <span class="badge-heifer">Heifer</span>
+          {% elif category == 'Calf' %}
+            <span class="badge-calf">Calf</span>
+          {% else %}
+            <span class="badge-neutral">{{ category }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="detail-label">Quantity</div>
+      <div class="detail-value">{{ record.quantity if record.quantity is not none else '—' }} {% if record.unit %}<small style="font-weight:600; color:#475569;">{{ record.unit }}</small>{% endif %}</div>
+
+      <div style="margin-top:10px;">
+        <div class="detail-label">Recorded by</div>
+        <div class="detail-value" style="font-weight:600;">{{ record.recorded_by or '—' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-row" style="margin-top:12px;">
+    <div class="detail-card" style="flex:2;">
+      <div class="detail-label">Notes</div>
+      <div class="detail-value" style="font-weight:500; font-size:0.95rem; color:#475569;">
+        {{ record.notes or '—' }}
+      </div>
+    </div>
+
+    <div class="detail-card" style="flex:1;">
+      <div class="detail-label">Created at</div>
+      <div class="detail-value">{{ record.created_at or '—' }}</div>
+
+      <div style="margin-top:12px;">
+        <div class="detail-label">Last updated</div>
+        <div class="detail-value">{{ record.updated_at or '—' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions" style="margin-top:18px;">
+    <a class="btn btn-outline-warning" href="{{ url_for('edit_production', record_id=record.id) }}"><i class="fas fa-edit me-1"></i>Edit</a>
+
+    <form id="del-record-{{ record.id }}" method="POST" action="{{ url_for('delete_production', record_id=record.id) }}" style="display:inline;">
+      <input type="hidden" name="confirm" value="1">
+      <button type="button" class="btn btn-outline-danger"
+        onclick="confirmAction('Delete record PR-{{ record.id }} for {{ (record.animal.breed if record.animal is defined and record.animal else (record.a_breed or record.animal_name or 'Unknown')) }} on {{ record.record_date or '' }}? This action cannot be undone.', function(ok){ if(ok) document.getElementById('del-record-{{ record.id }}').submit(); })">
+        <i class="fas fa-trash me-1"></i>Delete
+      </button>
+    </form>
+
+    <a class="btn btn-outline-secondary" href="{{ url_for('production_list') }}">Close</a>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  // Small helper used by delete buttons (uses simple confirm dialog)
+  function confirmAction(message, callback) {
+    try {
+      const ok = window.confirm(message);
+      callback(Boolean(ok));
+    } catch (e) {
+      callback(false);
+    }
+  }
+  // expose to global so inline handlers can call it
+  window.confirmAction = confirmAction;
+})();
+</script>
+{% endblock %}

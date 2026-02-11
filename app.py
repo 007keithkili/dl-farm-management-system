@@ -549,6 +549,608 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required
 import sqlite3
+from flask import request, redirect, url_for, render_template, flash
+import sqlite3, os
+from datetime import date
+
+def get_db_path():
+    dburl = os.environ.get('DATABASE_URL','sqlite:////home/iqfrizqe/public_html/data.db')
+    if dburl.startswith('sqlite:///'):
+        return dburl.split('sqlite:///',1)[1]
+    return dburl
+
+# --- BEGIN: Production routes (ADD THIS BLOCK) ---
+from flask import request, redirect, url_for, render_template, abort, jsonify, flash
+
+from flask import Response, jsonify, request, flash, redirect, url_for, render_template, abort
+from flask_login import login_required
+
+@app.route('/production')
+@login_required
+def production_list():
+    """List production records"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # include production_type, health_status and an explicit animal_name fallback
+        cur.execute("""
+            SELECT p.id, p.record_date, p.animal_id, p.animal_name, p.production_type, p.health_status,
+                   p.quantity, p.unit, p.notes, p.recorded_by, p.created_at, p.updated_at,
+                   a.id AS a_id, a.breed AS a_breed, a.tag_number AS a_tag
+              FROM production p
+              LEFT JOIN animals a ON a.id = p.animal_id
+             ORDER BY p.record_date DESC, p.id DESC
+        """)
+        rows = cur.fetchall()
+        records = rows_to_objs(rows, cur)
+
+        # total count (fixed)
+        cur.execute("SELECT COUNT(*) FROM production")
+        production_total = cur.fetchone()[0]
+    except Exception:
+        try:
+            app.logger.exception("production_list error")
+        except Exception:
+            pass
+        records = []
+        production_total = 0
+    finally:
+        if conn:
+            conn.close()
+
+    # keep template context minimal and safe
+    return render_template('production_list.html',
+                           records=records,
+                           production_total=production_total)
+
+
+@app.route('/production/add', methods=['GET', 'POST'])
+@login_required
+def production_create():
+    """Create a new production record (form GET or create POST)"""
+    conn = None
+    if request.method == 'GET':
+        # need animals list for the select
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT id, breed, tag_number FROM animals ORDER BY id")
+            animals = rows_to_objs(cur.fetchall(), cur)
+        except Exception:
+            animals = []
+        finally:
+            if conn:
+                conn.close()
+        return render_template('edit_production.html', record=None, animals=animals, creating=True)
+
+    # POST - insert
+    form = request.form
+    record_date = form.get('record_date') or None
+    # accept both animal_id (preferred) and animal_name (fallback from your modal)
+    animal_id = form.get('animal_id') or None
+    animal_name = form.get('animal_name') or None
+    production_type = form.get('production_type') or None
+    health_status = form.get('health_status') or None
+    quantity = form.get('quantity') or None
+    unit = form.get('unit') or None
+    notes = form.get('notes') or None
+    recorded_by = form.get('recorded_by') or None
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # If only animal_name provided, try to resolve to an animals.id (breed or tag_number)
+        if not animal_id and animal_name:
+            try:
+                cur.execute("SELECT id FROM animals WHERE breed = ? OR tag_number = ? LIMIT 1", (animal_name, animal_name))
+                arow = cur.fetchone()
+                if arow:
+                    animal_id = arow[0]
+            except Exception:
+                # ignore lookup failures — we'll store the animal_name into the production record (if column exists)
+                animal_id = None
+
+        # Insert with production_type and health_status, and also save animal_name for fallbacks
+        cur.execute("""
+            INSERT INTO production (record_date, animal_id, animal_name, production_type, health_status,
+                                    quantity, unit, notes, recorded_by, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            """, (
+                record_date,
+                animal_id or None,
+                animal_name or None,
+                production_type or None,
+                health_status or None,
+                quantity or None,
+                unit or None,
+                notes or None,
+                recorded_by or None
+            ))
+        conn.commit()
+    except Exception as e:
+        app.logger.exception("production_create error")
+        try:
+            flash('Failed to create record: {}'.format(str(e)), 'danger')
+        except Exception:
+            pass
+        return redirect(url_for('production_list'))
+    finally:
+        if conn:
+            conn.close()
+
+    return redirect(url_for('production_list'))
+
+
+@app.route('/production/<int:record_id>')
+@login_required
+def view_production(record_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # p.* includes the fields we inserted (animal_name, production_type, health_status, etc.)
+        cur.execute("""
+            SELECT p.*, a.id AS a_id, a.breed AS a_breed, a.tag_number AS a_tag
+              FROM production p
+              LEFT JOIN animals a ON a.id = p.animal_id
+             WHERE p.id = ?
+            """, (record_id,))
+        row = cur.fetchone()
+        if not row:
+            abort(404)
+        record = rows_to_objs([row], cur)[0]
+    except Exception:
+        app.logger.exception("view_production error")
+        abort(500)
+    finally:
+        if conn:
+            conn.close()
+    return render_template('view_production.html', record=record)
+
+
+@app.route('/production/<int:record_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_production(record_id):
+    conn = None
+    if request.method == 'GET':
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT id, breed, tag_number FROM animals ORDER BY id")
+            animals = rows_to_objs(cur.fetchall(), cur)
+            cur.execute("SELECT * FROM production WHERE id = ?", (record_id,))
+            row = cur.fetchone()
+            if not row:
+                abort(404)
+            record = rows_to_objs([row], cur)[0]
+        except Exception:
+            app.logger.exception("edit_production GET error")
+            abort(500)
+        finally:
+            if conn:
+                conn.close()
+        return render_template('edit_production.html', record=record, animals=animals, creating=False)
+
+    # POST -> update
+    form = request.form
+    record_date = form.get('record_date') or None
+    animal_id = form.get('animal_id') or None
+    animal_name = form.get('animal_name') or None
+    production_type = form.get('production_type') or None
+    health_status = form.get('health_status') or None
+    quantity = form.get('quantity') or None
+    unit = form.get('unit') or None
+    notes = form.get('notes') or None
+    recorded_by = form.get('recorded_by') or None
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # If only animal_name provided, try to resolve to animals.id
+        if not animal_id and animal_name:
+            try:
+                cur.execute("SELECT id FROM animals WHERE breed = ? OR tag_number = ? LIMIT 1", (animal_name, animal_name))
+                arow = cur.fetchone()
+                if arow:
+                    animal_id = arow[0]
+            except Exception:
+                animal_id = None
+
+        # Update record, set updated_at
+        cur.execute("""
+            UPDATE production
+               SET record_date = ?, animal_id = ?, animal_name = ?, production_type = ?, health_status = ?,
+                   quantity = ?, unit = ?, notes = ?, recorded_by = ?, updated_at = datetime('now')
+             WHERE id = ?
+            """, (
+                record_date,
+                animal_id or None,
+                animal_name or None,
+                production_type or None,
+                health_status or None,
+                quantity or None,
+                unit or None,
+                notes or None,
+                recorded_by or None,
+                record_id
+            ))
+        conn.commit()
+    except Exception:
+        app.logger.exception("edit_production POST error")
+        try:
+            flash('Failed to update record', 'danger')
+        except Exception:
+            pass
+        return redirect(url_for('production_list'))
+    finally:
+        if conn:
+            conn.close()
+
+    return redirect(url_for('view_production', record_id=record_id))
+
+
+@app.route('/production/<int:record_id>/delete', methods=['POST'])
+@login_required
+def delete_production(record_id):
+    # conservative delete with confirm token optional
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM production WHERE id = ?", (record_id,))
+        conn.commit()
+        # If the request appears to be an AJAX/fetch call, return JSON ok for the front-end JS
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('Accept', '').find('application/json') != -1:
+            return jsonify({'ok': True}), 200
+    except Exception:
+        app.logger.exception("delete_production error")
+        # still attempt to return something meaningful for AJAX callers
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('Accept', '').find('application/json') != -1:
+            return jsonify({'ok': False}), 500
+    finally:
+        try:
+            if conn:
+                conn.close()
+        except Exception:
+            pass
+    # fallback for non-AJAX callers (forms) - redirect to list
+    return redirect(url_for('production_list'))
+
+
+# --- END: Production routes (ADD THIS BLOCK) ---
+# ---------------- Inventory routes ----------------
+@app.route('/inventory')
+@login_required
+def inventory_list():
+    """List inventory items and quick actions for check in/out"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT i.id, i.item_name, i.sku, i.quantity_on_hand, i.location, i.notes,
+                   i.created_at, i.updated_at,
+                   (SELECT COUNT(*) FROM inventory_tx tx WHERE tx.inventory_id = i.id AND tx.tx_type = 'in') as total_in,
+                   (SELECT COUNT(*) FROM inventory_tx tx WHERE tx.inventory_id = i.id AND tx.tx_type = 'out') as total_out
+            FROM inventory i
+            ORDER BY i.item_name COLLATE NOCASE
+        """)
+        rows = cur.fetchall()
+        items = rows_to_objs(rows, cur)
+    except Exception:
+        try:
+            app.logger.exception("inventory_list error")
+        except Exception:
+            pass
+        items = []
+    finally:
+        if conn:
+            conn.close()
+
+    return render_template('inventory_list.html', items=items)
+
+
+@app.route('/inventory/add', methods=['GET', 'POST'])
+@login_required
+def inventory_create():
+    if request.method == 'GET':
+        return render_template('edit_inventory.html', item=None, creating=True)
+    # POST -> insert
+    form = request.form
+    item_name = form.get('item_name') or None
+    sku = form.get('sku') or None
+    quantity = form.get('quantity') or 0
+    location = form.get('location') or None
+    notes = form.get('notes') or None
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO inventory (item_name, sku, quantity_on_hand, location, notes, created_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+        """, (item_name, sku, int(quantity or 0), location, notes))
+        conn.commit()
+    except Exception as e:
+        app.logger.exception("inventory_create error")
+        try:
+            flash('Failed to create inventory item: {}'.format(str(e)), 'danger')
+        except Exception:
+            pass
+        return redirect(url_for('inventory_list'))
+    finally:
+        if conn:
+            conn.close()
+    return redirect(url_for('inventory_list'))
+
+
+@app.route('/inventory/<int:item_id>')
+@login_required
+def view_inventory(item_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM inventory WHERE id = ?", (item_id,))
+        row = cur.fetchone()
+        if not row:
+            abort(404)
+        item = rows_to_objs([row], cur)[0]
+
+        # fetch recent transactions
+        cur.execute("""
+            SELECT id, inventory_id, tx_type, quantity, reference, notes, performed_by, tx_date
+              FROM inventory_tx
+             WHERE inventory_id = ?
+             ORDER BY tx_date DESC, id DESC
+             LIMIT 100
+        """, (item_id,))
+        tx_rows = cur.fetchall()
+        txs = rows_to_objs(tx_rows, cur)
+    except Exception:
+        app.logger.exception("view_inventory error")
+        abort(500)
+    finally:
+        if conn:
+            conn.close()
+    return render_template('view_inventory.html', item=item, txs=txs)
+
+
+@app.route('/inventory/<int:item_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_inventory(item_id):
+    conn = None
+    if request.method == 'GET':
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM inventory WHERE id = ?", (item_id,))
+            row = cur.fetchone()
+            if not row:
+                abort(404)
+            item = rows_to_objs([row], cur)[0]
+        except Exception:
+            app.logger.exception("edit_inventory GET error")
+            abort(500)
+        finally:
+            if conn:
+                conn.close()
+        return render_template('edit_inventory.html', item=item, creating=False)
+
+    # POST -> update
+    form = request.form
+    item_name = form.get('item_name') or None
+    sku = form.get('sku') or None
+    quantity = form.get('quantity') or None
+    location = form.get('location') or None
+    notes = form.get('notes') or None
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE inventory
+               SET item_name = ?, sku = ?, quantity_on_hand = ?, location = ?, notes = ?, updated_at = datetime('now')
+             WHERE id = ?
+        """, (item_name, sku, int(quantity or 0), location, notes, item_id))
+        conn.commit()
+    except Exception:
+        app.logger.exception("edit_inventory POST error")
+        try:
+            flash('Failed to update item', 'danger')
+        except Exception:
+            pass
+        return redirect(url_for('inventory_list'))
+    finally:
+        if conn:
+            conn.close()
+    return redirect(url_for('view_inventory', item_id=item_id))
+
+
+@app.route('/inventory/<int:item_id>/delete', methods=['POST'])
+@login_required
+def delete_inventory(item_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM inventory WHERE id = ?", (item_id,))
+        conn.commit()
+        # respond JSON for AJAX calls
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'ok': True})
+    except Exception:
+        app.logger.exception("delete_inventory error")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'ok': False}), 500
+    finally:
+        if conn:
+            conn.close()
+    return redirect(url_for('inventory_list'))
+
+
+@app.route('/inventory/<int:item_id>/tx', methods=['POST'])
+@login_required
+def inventory_tx(item_id):
+    """
+    Process a check-in (tx_type='in') or check-out (tx_type='out').
+    Accepts JSON or form POST:
+      - tx_type: 'in' or 'out'
+      - quantity: integer (>0)
+      - reference: optional string (delivery note, PO, etc.)
+      - notes, performed_by (optional)
+    Returns JSON for AJAX callers and redirects for form callers.
+    """
+    data = request.get_json(silent=True) or request.form
+    tx_type = (data.get('tx_type') or '').lower()
+    try:
+        qty = int(data.get('quantity') or 0)
+    except Exception:
+        qty = 0
+    reference = data.get('reference') or None
+    notes = data.get('notes') or None
+    performed_by = data.get('performed_by') or (getattr(current_user, 'name', None) or None)
+    tx_date = datetime.datetime.utcnow().isoformat(sep=' ')
+
+    if tx_type not in ('in', 'out') or qty <= 0:
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'ok': False, 'error': 'invalid payload'}), 400
+        flash('Invalid transaction', 'danger')
+        return redirect(url_for('view_inventory', item_id=item_id))
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Insert transaction
+        cur.execute("""
+            INSERT INTO inventory_tx (inventory_id, tx_type, quantity, reference, notes, performed_by, tx_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (item_id, tx_type, qty, reference, notes, performed_by, tx_date))
+
+        # Update quantity_on_hand
+        if tx_type == 'in':
+            cur.execute("UPDATE inventory SET quantity_on_hand = COALESCE(quantity_on_hand,0) + ?, updated_at = datetime('now') WHERE id = ?", (qty, item_id))
+        else:
+            # prevent negative quantities: subtract but floor at 0
+            cur.execute("SELECT COALESCE(quantity_on_hand,0) FROM inventory WHERE id = ?", (item_id,))
+            current_qty = cur.fetchone()[0] or 0
+            new_qty = max(0, current_qty - qty)
+            cur.execute("UPDATE inventory SET quantity_on_hand = ?, updated_at = datetime('now') WHERE id = ?", (new_qty, item_id))
+
+        conn.commit()
+
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'ok': True}), 200
+    except Exception:
+        app.logger.exception("inventory_tx error")
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'ok': False}), 500
+        try:
+            flash('Failed to record transaction', 'danger')
+        except Exception:
+            pass
+        return redirect(url_for('view_inventory', item_id=item_id))
+    finally:
+        if conn:
+            conn.close()
+
+    return redirect(url_for('view_inventory', item_id=item_id))
+
+
+@app.route('/inventory/export')
+@login_required
+def inventory_export():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, item_name, sku, quantity_on_hand, location, notes, created_at, updated_at FROM inventory ORDER BY item_name")
+        rows = cur.fetchall()
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(['id','item_name','sku','quantity_on_hand','location','notes','created_at','updated_at'])
+        for r in rows:
+            writer.writerow([r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7]])
+        csv_data = buf.getvalue()
+        buf.close()
+        return Response(csv_data, mimetype="text/csv", headers={"Content-disposition":"attachment; filename=inventory_export.csv"})
+    except Exception:
+        app.logger.exception("inventory_export error")
+        try:
+            flash("Export failed", "danger")
+        except Exception:
+            pass
+        return redirect(url_for('inventory_list'))
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.route('/production/export')
+@login_required
+def production_export():
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT p.id, p.record_date, p.animal_id, p.animal_name, p.production_type, p.health_status,
+                   p.quantity, p.unit, p.notes, p.recorded_by,
+                   a.id AS a_id, a.breed AS a_breed, a.tag_number AS a_tag
+              FROM production p
+              LEFT JOIN animals a ON a.id = p.animal_id
+             ORDER BY p.record_date DESC, p.id DESC
+        """)
+        rows = cur.fetchall()
+
+        # Build CSV in memory using cursor.description for robust column mapping
+        import csv, io
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        headers = ['id', 'record_date', 'animal_id', 'animal_name', 'production_type', 'health_status',
+                   'quantity', 'unit', 'notes', 'recorded_by', 'animal_breed', 'animal_tag']
+        writer.writerow(headers)
+
+        # If rows are tuples, map by index relying on SELECT order above
+        for row in rows:
+            # defensive extraction: attempt to index by known positions
+            writer.writerow([
+                row[0],  # p.id
+                row[1],  # record_date
+                row[2],  # animal_id
+                row[3],  # animal_name
+                row[4],  # production_type
+                row[5],  # health_status
+                row[6],  # quantity
+                row[7],  # unit
+                row[8],  # notes
+                row[9],  # recorded_by
+                row[11], # a_breed (note SELECT order: a.id AS a_id is at index 10, a.breed at 11)
+                row[12]  # a_tag
+            ])
+
+        csv_data = buf.getvalue()
+        buf.close()
+        return Response(
+            csv_data,
+            mimetype="text/csv",
+            headers={"Content-disposition": "attachment; filename=production_export.csv"}
+        )
+    except Exception:
+        app.logger.exception("production_export error")
+        try:
+            flash("Export failed", "danger")
+        except Exception:
+            pass
+        return redirect(url_for('production_list'))
+    finally:
+        if conn:
+            conn.close()
+
 
 @app.route('/generate-report', methods=['POST'])
 @login_required
@@ -2037,4 +2639,3 @@ if __name__ == '__main__':
         print("Error checking DB:", e)
     print("Starting server: http://localhost:5000"); print("=" * 60)
     app.run(debug=True, host='0.0.0.0', port=5000)
-

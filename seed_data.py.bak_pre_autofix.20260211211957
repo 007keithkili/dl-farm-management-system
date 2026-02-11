@@ -1,4 +1,4 @@
-﻿# seed_data.py
+# seed_data.py
 from app import app, db
 from models import User, Animal, Feed, Staff, Task
 from werkzeug.security import generate_password_hash

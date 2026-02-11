@@ -1,4 +1,4 @@
-# check_app.py
+﻿# check_app.py
 import traceback
 import sys
 
@@ -15,6 +15,7 @@ try:
     print("OK: app imported successfully. Routes:")
     print("\n".join(rules))
 except Exception:
-    print("ERROR: Exception occurred while importing app.py — full traceback below:\n")
+    print("ERROR: Exception occurred while importing app.py â€” full traceback below:\n")
     traceback.print_exc()
     sys.exit(1)
+
