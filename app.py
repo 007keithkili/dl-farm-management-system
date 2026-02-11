@@ -11,7 +11,6 @@ import csv
 import sys
 import traceback
 
-
 # ----- Config -----
 app = Flask(__name__)
 app.secret_key = 'dl-farm-secret-key-2025-change-in-production'
@@ -37,21 +36,6 @@ class User(UserMixin):
 
     def get_role(self):
         return self.role
-    # app.py (add once, near app creation / imports)
-from flask import url_for
-from werkzeug.routing import BuildError
-
-def endpoint_exists(endpoint_name):
-    """Return True if `url_for(endpoint_name)` can be built (endpoint registered)."""
-    try:
-        url_for(endpoint_name)
-        return True
-    except BuildError:
-        return False
-
-# make it available in all templates
-app.jinja_env.globals['endpoint_exists'] = endpoint_exists
-
 
 
 @login_manager.user_loader
@@ -531,116 +515,6 @@ def dashboard():
                            user_role=current_user.role,
                            username=current_user.username)
 
-# --- Replace your previous generate_report route with this conditional registration block ---
-
-# --- BEGIN fixed single safe generate_report implementation (paste into app.py routes area) ---
-import os
-import csv
-import datetime as _dt
-from werkzeug.utils import secure_filename
-from flask import request, redirect, url_for, flash
-from flask_login import current_user, login_required
-
-REPORTS_DIR = os.path.join(os.path.dirname(__file__), 'static', 'reports')
-os.makedirs(REPORTS_DIR, exist_ok=True)
-
-# --- add this single generate_report route to app.py (remove other duplicates) ---
-# -> paste this into app.py (ONLY ONCE). Remove any duplicate generate_report routes first.
-from flask import render_template, request, redirect, url_for, flash
-from flask_login import login_required
-import sqlite3
-from flask import request, redirect, url_for, render_template, flash
-import sqlite3, os
-from datetime import date
-
-def get_db_path():
-    dburl = os.environ.get('DATABASE_URL','sqlite:////home/iqfrizqe/public_html/data.db')
-    if dburl.startswith('sqlite:///'):
-        return dburl.split('sqlite:///',1)[1]
-    return dburl
-
-@app.route('/production', methods=['GET'])
-def production_index():
-    db = get_db_path()
-    conn = sqlite3.connect(db)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    # get animals for dropdown
-    cur.execute("SELECT id, tag, name, herd FROM livestock ORDER BY id")
-    animals = cur.fetchall()
-    # recent production
-    cur.execute("SELECT p.*, l.tag, l.name FROM production p LEFT JOIN livestock l ON p.livestock_id = l.id ORDER BY p.date DESC LIMIT 50")
-    rows = cur.fetchall()
-    conn.close()
-    return render_template('production/index.html', animals=animals, rows=rows)
-
-@app.route('/production/add', methods=['POST'])
-def production_add():
-    db = get_db_path()
-    livestock_id = request.form.get('livestock_id') or None
-    tag = request.form.get('tag') or None
-    d = request.form.get('date') or str(date.today())
-    liters = request.form.get('liters') or '0'
-    recorded_by = request.form.get('recorded_by') or ''
-    notes = request.form.get('notes') or ''
-    try:
-        liters_val = float(liters)
-    except:
-        flash('Enter valid liters value', 'danger')
-        return redirect(url_for('production_index'))
-
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-    cur.execute("""INSERT INTO production (livestock_id, tag, date, liters, recorded_by, notes)
-                   VALUES (?,?,?,?,?,?)""",
-                (livestock_id, tag, d, liters_val, recorded_by, notes))
-    conn.commit()
-    conn.close()
-    flash('Production saved', 'success')
-    return redirect(url_for('production_index'))
-
-
-@app.route('/generate-report', methods=['POST'])
-@login_required
-def generate_report():
-    """
-    Accepts the POST from the reports forms and redirects to /print-report
-    with safe query params. This centralizes printing and avoids endpoint collisions.
-    """
-    try:
-        # Normalize inputs from different form names
-        report_type = (request.form.get('report_type') or request.form.get('type') or 'custom').strip().lower()
-        period = (request.form.get('period') or '').strip()
-        start_date = (request.form.get('start_date') or request.form.get('startDate') or '').strip()
-        end_date = (request.form.get('end_date') or request.form.get('endDate') or '').strip()
-        fmt = (request.form.get('format') or 'html').strip().lower()
-
-        # extras
-        extras = {}
-        if request.form.get('include_income'):
-            extras['include_income'] = '1'
-        if request.form.get('include_expenses'):
-            extras['include_expenses'] = '1'
-        if request.form.get('include_charts'):
-            extras['include_charts'] = '1'
-
-        # Build query string parameters
-        qs = {
-            'report_type': report_type,
-            'period': period,
-            'start_date': start_date,
-            'end_date': end_date,
-            'format': fmt,
-            'print': '1'   # instruct print mode
-        }
-        qs.update(extras)
-
-        return redirect(url_for('print_report', **qs))
-    except Exception as e:
-        app.logger.exception("generate_report failed")
-        flash('Could not prepare print request: {}'.format(e), 'error')
-        return redirect(url_for('reports'))
-
 
 # ----- Animals -----
 @app.route('/animals')
@@ -665,39 +539,6 @@ def view_animal(animal_id):
     if not animal:
         flash('Animal not found.', 'error'); return redirect(url_for('animals'))
     return render_template('animal_view.html', animal=animal)
-# --- Delete animal route (add to app.py) ---
-@app.route('/animal/delete/<int:animal_id>', methods=['POST'])
-@login_required
-def delete_animal(animal_id):
-    # optional: restrict to roles that are allowed to delete
-    # if current_user.role not in ('admin','manager'):
-    #     flash('Not authorized to delete animals', 'error')
-    #     return redirect(url_for('animals'))
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        # Optionally check if animal exists before attempting delete
-        cur.execute("SELECT id, tag_number FROM animal WHERE id = ?", (animal_id,))
-        row = cur.fetchone()
-        if not row:
-            flash('Animal not found', 'error')
-            return redirect(url_for('animals'))
-
-        # If there are related records (sales, medical etc.) you may want to
-        # check or cascade; here we simply attempt the delete
-        cur.execute("DELETE FROM animal WHERE id = ?", (animal_id,))
-        conn.commit()
-        flash(f'Animal A-{animal_id} deleted successfully', 'success')
-        app.logger.info("Deleted animal id=%s by user=%s", animal_id, current_user.username)
-    except Exception as e:
-        conn.rollback()
-        app.logger.exception("Failed to delete animal id=%s", animal_id)
-        flash('Failed to delete animal (check related records)', 'error')
-    finally:
-        conn.close()
-
-    return redirect(url_for('animals'))
 
 
 @app.route('/animals/<int:animal_id>/edit', methods=['GET', 'POST'])
@@ -817,98 +658,7 @@ def add_sale():
     except Exception as e:
         flash(f'Error recording sale: {e}', 'error')
     return redirect(url_for('sales'))
-from datetime import datetime  # add at top if not present
 
-# add this to app.py near your sales routes (after add_sale is a good spot)
-from sqlite3 import OperationalError
-# put this near your other sales routes (e.g. after add_sale/edit_sale)
-from sqlite3 import OperationalError
-from datetime import datetime
-
-@app.route('/delete_sale/<int:sale_id>', methods=['POST'])
-@login_required
-def delete_sale(sale_id):
-    # only allow permitted roles
-    if getattr(current_user, 'role', None) not in ['admin', 'manager', 'accountant']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('sales'))
-
-    conn = None
-    try:
-        # open DB using your helper if available
-        try:
-            conn = get_db_connection()
-        except NameError:
-            import sqlite3, os
-            db_path = os.path.join(os.path.dirname(__file__), 'database', 'farm.db')
-            conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-
-        # detect which sale table exists
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND (name='sale' OR name='sales')")
-        row = cur.fetchone()
-        if not row:
-            flash('Sale table does not exist.', 'error')
-            return redirect(url_for('sales'))
-
-        table_name = row[0]  # 'sale' or 'sales'
-
-        # fetch the row to give a friendly message
-        cur.execute(f"SELECT id, customer_name, product, total_amount FROM {table_name} WHERE id = ?", (sale_id,))
-        r = cur.fetchone()
-        if not r:
-            flash('Sale record not found.', 'error')
-            return redirect(url_for('sales'))
-
-        customer = r[1] or ''
-        product = r[2] or ''
-        total_amount = r[3] or 0
-
-        # delete the sale
-        cur.execute(f"DELETE FROM {table_name} WHERE id = ?", (sale_id,))
-        conn.commit()
-
-        # ensure deletion_logs and insert audit row
-        try:
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS deletion_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    table_name TEXT,
-                    record_id INTEGER,
-                    record_repr TEXT,
-                    deleted_by TEXT,
-                    deleted_by_id INTEGER,
-                    timestamp TEXT
-                )
-            ''')
-            conn.commit()
-
-            deleter_id = getattr(current_user, 'id', None)
-            deleter_ident = getattr(current_user, 'username', None) or getattr(current_user, 'email', None) or str(deleter_id)
-            timestamp = datetime.utcnow().isoformat() + 'Z'
-            record_repr = f"{customer} — {product} ({total_amount})".strip()
-
-            cur.execute('''
-                INSERT INTO deletion_logs (table_name, record_id, record_repr, deleted_by, deleted_by_id, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (table_name, sale_id, record_repr, str(deleter_ident), deleter_id, timestamp))
-            conn.commit()
-        except Exception:
-            current_app.logger.exception('Failed to write deletion log for sale %s', sale_id)
-
-        flash(f'Sale S-{sale_id} deleted: {customer} — {product} (Ksh {total_amount})', 'success')
-
-    except OperationalError as oe:
-        current_app.logger.exception('OperationalError deleting sale: %s', oe)
-        flash('Database error while deleting sale: ' + str(oe), 'error')
-    except Exception as e:
-        current_app.logger.exception('Error deleting sale: %s', e)
-        flash('Error deleting sale: ' + str(e), 'error')
-    finally:
-        if conn:
-            conn.close()
-
-    return redirect(url_for('sales'))
 
 # ----- Breeding -----
 @app.route('/breeding')
@@ -936,47 +686,6 @@ def breeding():
         success_rate = 0
     conn.close()
     return render_template('breeding.html', breeding_records=breeding_records, total_breeding=total_breeding, active_pairs=active_pairs, expected_births=expected_births, total_offspring=0, success_rate=success_rate)
-@app.route('/delete_breeding/<int:breeding_id>', methods=['POST'])
-@login_required
-def delete_breeding(breeding_id):
-    # same role check as your /breeding view
-    if current_user.role not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('breeding'))
-
-    conn = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # confirm record exists
-        cur.execute('SELECT id FROM breeding WHERE id = ?', (breeding_id,))
-        row = cur.fetchone()
-        if not row:
-            flash('Breeding record not found.', 'error')
-            return redirect(url_for('breeding'))
-
-        # perform delete
-        cur.execute('DELETE FROM breeding WHERE id = ?', (breeding_id,))
-        conn.commit()
-
-        flash(f'Breeding record BP-{breeding_id} deleted.', 'success')
-    except Exception as e:
-        # log error on server and show friendly message
-        try:
-            current_app.logger.exception('Error deleting breeding record %s', breeding_id)
-        except Exception:
-            pass
-        flash('Could not delete the breeding record. See server logs.', 'error')
-    finally:
-        try:
-            if conn:
-                conn.close()
-        except Exception:
-            pass
-
-    return redirect(url_for('breeding'))
-
 
 
 @app.route('/breeding/<int:breeding_id>')
@@ -1033,66 +742,27 @@ def add_breeding():
 
 
 # ----- Medical -----
-# --- routes (paste/replace existing versions) ---
-
 @app.route('/medical')
 @login_required
-def medical_records():
-    # Authorization
+def medical():
     if current_user.role not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('dashboard'))
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM medical ORDER BY created_at DESC')
-    medical_records = cur.fetchall()
-    cur.execute('SELECT COUNT(*) FROM medical')
-    total_medical = cur.fetchone()[0] or 0
+        flash('Access denied.', 'error'); return redirect(url_for('dashboard'))
+    conn = get_db_connection(); cur = conn.cursor()
+    cur.execute('SELECT * FROM medical ORDER BY created_at DESC'); medical_records = cur.fetchall()
+    cur.execute('SELECT COUNT(*) FROM medical'); total_medical = cur.fetchone()[0] or 0
     conn.close()
-
     return render_template('medical.html', medical_records=medical_records, total_medical=total_medical)
-
-
-@app.route('/delete_medical/<int:medical_id>', methods=['POST'])
-@login_required
-def delete_medical(medical_id):
-    # Optional: restrict to admin/manager
-    if current_user.role not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('medical_records'))
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute('DELETE FROM medical WHERE id = ?', (medical_id,))
-        conn.commit()
-        conn.close()
-        flash('Medical record deleted successfully!', 'success')
-    except Exception as e:
-        flash(f'Error deleting record: {e}', 'error')
-
-    # Redirect to the list page (use correct endpoint name)
-    return redirect(url_for('medical_records'))
 
 
 @app.route('/medical/<int:medical_id>')
 @login_required
 def view_medical(medical_id):
     if current_user.role not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('medical_records'))
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM medical WHERE id = ?', (medical_id,))
-    rec = cur.fetchone()
-    conn.close()
-
+        flash('Access denied.', 'error'); return redirect(url_for('medical'))
+    conn = get_db_connection(); cur = conn.cursor()
+    cur.execute('SELECT * FROM medical WHERE id = ?', (medical_id,)); rec = cur.fetchone(); conn.close()
     if not rec:
-        flash('Medical record not found.', 'error')
-        return redirect(url_for('medical_records'))
-
+        flash('Medical record not found.', 'error'); return redirect(url_for('medical'))
     return render_template('medical_view.html', record=rec)
 
 
@@ -1100,89 +770,42 @@ def view_medical(medical_id):
 @login_required
 def edit_medical(medical_id):
     if current_user.role not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('medical_records'))
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
+        flash('Access denied.', 'error'); return redirect(url_for('medical'))
+    conn = get_db_connection(); cur = conn.cursor()
     if request.method == 'POST':
-        # optionally debug incoming form
-        # debug_form('edit_medical', request.form)
+        debug_form('edit_medical', request.form)
         try:
-            cur.execute(
-                'UPDATE medical SET animal_id=?, treatment_date=?, condition=?, treatment=?, veterinarian=?, next_checkup=?, notes=? WHERE id=?',
-                (
-                    request.form.get('animal_id', '').strip(),
-                    request.form.get('treatment_date'),
-                    request.form.get('condition', '').strip(),
-                    request.form.get('treatment', '').strip(),
-                    request.form.get('veterinarian', '').strip(),
-                    request.form.get('next_checkup'),
-                    request.form.get('notes', '').strip(),
-                    medical_id
-                )
-            )
-            conn.commit()
-            flash('Medical record updated!', 'success')
+            cur.execute('UPDATE medical SET animal_id=?, treatment_date=?, condition=?, treatment=?, veterinarian=?, next_checkup=?, notes=? WHERE id=?',
+                        (request.form.get('animal_id', '').strip(), request.form.get('treatment_date'), request.form.get('condition', '').strip(), request.form.get('treatment', '').strip(), request.form.get('veterinarian', '').strip(), request.form.get('next_checkup'), request.form.get('notes', '').strip(), medical_id))
+            conn.commit(); flash('Medical record updated!', 'success')
         except Exception as e:
             flash(f'Error: {e}', 'error')
         finally:
             conn.close()
-
-        return redirect(url_for('medical_records'))
-
-    cur.execute('SELECT * FROM medical WHERE id = ?', (medical_id,))
-    rec = cur.fetchone()
-    conn.close()
-
+        return redirect(url_for('medical'))
+    cur.execute('SELECT * FROM medical WHERE id = ?', (medical_id,)); rec = cur.fetchone(); conn.close()
     if not rec:
-        flash('Medical record not found.', 'error')
-        return redirect(url_for('medical_records'))
-
+        flash('Medical record not found.', 'error'); return redirect(url_for('medical'))
     return render_template('medical_edit.html', record=rec)
 
 
 @app.route('/add_medical', methods=['POST'])
 @login_required
 def add_medical():
-    # debug_form('add_medical', request.form)
+    debug_form('add_medical', request.form)
     if current_user.role not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('medical_records'))
-
+        flash('Access denied.', 'error'); return redirect(url_for('medical'))
     try:
-        aid = request.form.get('animal_id', '').strip()
-        tdate = request.form.get('treatment_date')
-        cond = request.form.get('condition', '').strip()
-        treat = request.form.get('treatment', '').strip()
-
+        aid = request.form.get('animal_id', '').strip(); tdate = request.form.get('treatment_date'); cond = request.form.get('condition', '').strip(); treat = request.form.get('treatment', '').strip()
         if not aid or not tdate or not cond or not treat:
-            flash('Required fields missing.', 'error')
-            return redirect(url_for('medical_records'))
-
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            'INSERT INTO medical (animal_id, treatment_date, condition, treatment, veterinarian, next_checkup, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (
-                aid,
-                tdate,
-                cond,
-                treat,
-                request.form.get('veterinarian', '').strip(),
-                request.form.get('next_checkup'),
-                request.form.get('notes', '').strip()
-            )
-        )
-        conn.commit()
-        conn.close()
-        flash('Medical record added!', 'success')
+            flash('Required fields missing.', 'error'); return redirect(url_for('medical'))
+        conn = get_db_connection(); cur = conn.cursor()
+        cur.execute('INSERT INTO medical (animal_id, treatment_date, condition, treatment, veterinarian, next_checkup, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (aid, tdate, cond, treat, request.form.get('veterinarian', ''), request.form.get('next_checkup'), request.form.get('notes', '')))
+        conn.commit(); conn.close(); flash('Medical record added!', 'success')
     except Exception as e:
         flash(f'Error adding medical record: {e}', 'error')
-
-    return redirect(url_for('medical_records'))
-
+    return redirect(url_for('medical'))
 
 
 # ----- Feed -----
@@ -1196,41 +819,6 @@ def feed():
     cur.execute('SELECT COUNT(*) FROM feed'); total_feed = cur.fetchone()[0] or 0
     conn.close()
     return render_template('feed.html', feed_records=feed_records, total_feed=total_feed)
-# add near your other feed routes (imports assumed already present)
-from flask import current_app
-
-@app.route('/delete_feed/<int:feed_id>', methods=['POST'])
-@login_required
-def delete_feed(feed_id):
-    # Only allow admins/managers (same pattern as your other routes)
-    if current_user.role not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('feed'))
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # Optional: check record exists
-        cur.execute('SELECT id FROM feed WHERE id = ?', (feed_id,))
-        rec = cur.fetchone()
-        if not rec:
-            flash('Feed record not found.', 'error')
-            conn.close()
-            return redirect(url_for('feed'))
-
-        # Delete
-        cur.execute('DELETE FROM feed WHERE id = ?', (feed_id,))
-        conn.commit()
-        conn.close()
-
-        flash('Feed record deleted successfully.', 'success')
-    except Exception as e:
-        # Keep the error message concise for UI; log details server-side if needed
-        current_app.logger.exception("Failed to delete feed record %s", feed_id)
-        flash(f'Error deleting feed record: {e}', 'error')
-
-    return redirect(url_for('feed'))
 
 
 @app.route('/feed/<int:feed_id>')
@@ -1347,38 +935,6 @@ def add_supplier():
         flash(f'Error adding supplier: {e}', 'error')
     return redirect(url_for('suppliers'))
 
-from sqlite3 import IntegrityError
-
-@app.route('/supplier/<int:supplier_id>/delete', methods=['POST'])
-@app.route('/suppliers/<int:supplier_id>/delete', methods=['POST'])
-@login_required
-def delete_supplier(supplier_id):
-    # only admins may delete suppliers
-    if current_user.role != 'admin':
-        flash('Access denied.', 'error'); return redirect(url_for('suppliers'))
-
-    conn = None
-    try:
-        conn = get_db_connection(); cur = conn.cursor()
-        # confirm exists
-        cur.execute('SELECT id, company_name FROM supplier WHERE id = ?', (supplier_id,))
-        rec = cur.fetchone()
-        if not rec:
-            flash('Supplier not found.', 'error'); return redirect(url_for('suppliers'))
-
-        # delete
-        cur.execute('DELETE FROM supplier WHERE id = ?', (supplier_id,))
-        conn.commit()
-        flash(f"Supplier '{rec['company_name']}' deleted.", 'success')
-    except IntegrityError as ie:
-        # likely referenced by other tables (FK constraint)
-        flash('Cannot delete supplier: it is referenced by other records.', 'error')
-    except Exception as e:
-        flash(f'Error deleting supplier: {e}', 'error')
-    finally:
-        if conn:
-            conn.close()
-    return redirect(url_for('suppliers'))
 
 # ----- Customers -----
 @app.route('/customers')
@@ -1443,117 +999,57 @@ def add_customer():
     except Exception as e:
         flash(f'Error: {e}', 'error')
     return redirect(url_for('customers'))
-# --- paste into app.py after your add_customer route ---
-from datetime import datetime
-from sqlite3 import OperationalError
-
-@app.route('/customers/<int:customer_id>/delete', methods=['POST'])
-@login_required
-def delete_customer(customer_id):
-    """Delete a customer row. Only admin/manager allowed to delete."""
-    if getattr(current_user, 'role', None) not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('customers'))
-
-    conn = None
-    try:
-        # use existing helper
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # ensure table exists
-        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='customer' LIMIT 1")
-        if not cur.fetchone():
-            flash('Customer table does not exist.', 'error')
-            return redirect(url_for('customers'))
-
-        # ensure record exists
-        cur.execute('SELECT id, customer_name, company, phone FROM customer WHERE id = ?', (customer_id,))
-        row = cur.fetchone()
-        if not row:
-            flash('Customer not found.', 'error')
-            return redirect(url_for('customers'))
-
-        # delete
-        cur.execute('DELETE FROM customer WHERE id = ?', (customer_id,))
-        conn.commit()
-
-        # optional audit log (will create table if missing)
-        try:
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS deletion_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    table_name TEXT,
-                    record_id INTEGER,
-                    record_repr TEXT,
-                    deleted_by TEXT,
-                    deleted_by_id INTEGER,
-                    timestamp TEXT
-                )
-            ''')
-            conn.commit()
-
-            deleter_id = getattr(current_user, 'id', None)
-            deleter_ident = getattr(current_user, 'username', None) or getattr(current_user, 'email', None) or str(deleter_id)
-            timestamp = datetime.utcnow().isoformat() + 'Z'
-            record_repr = f"{row['customer_name']} — {row['company'] or ''} ({row['phone'] or ''})".strip()
-
-            cur.execute('''
-                INSERT INTO deletion_logs (table_name, record_id, record_repr, deleted_by, deleted_by_id, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', ('customer', customer_id, record_repr, str(deleter_ident), deleter_id, timestamp))
-            conn.commit()
-        except Exception:
-            current_app.logger.exception('Failed to insert deletion log for customer %s', customer_id)
-
-        flash(f'Customer C-{customer_id} deleted: {row["customer_name"]}', 'success')
-
-    except OperationalError as oe:
-        current_app.logger.exception('OperationalError deleting customer: %s', oe)
-        flash('Database error while deleting customer: ' + str(oe), 'error')
-    except Exception as e:
-        current_app.logger.exception('Error deleting customer: %s', e)
-        flash('Error deleting customer: ' + str(e), 'error')
-    finally:
-        if conn:
-            conn.close()
-
-    return redirect(url_for('customers'))
-# --- end route ---
 
 
+# ----- Financial -----@app.route('/financial')
 # ----- Financial -----
-@app.route('/financial')
+@app.route('/financial', endpoint='financial')
 @login_required
 def financial():
     if current_user.role not in ['admin', 'accountant']:
-        flash('Access denied.', 'error'); return redirect(url_for('dashboard'))
-    conn = get_db_connection(); cur = conn.cursor()
-    cur.execute('SELECT * FROM financial ORDER BY created_at DESC'); financial_records = cur.fetchall()
-    cur.execute('SELECT SUM(amount) FROM financial WHERE transaction_type = ?', ('income',)); total_income = cur.fetchone()[0] or 0
-    cur.execute('SELECT SUM(amount) FROM financial WHERE transaction_type = ?', ('expense',)); total_expense = cur.fetchone()[0] or 0
-    net_profit = total_income - total_expense
-    cur.execute('SELECT COUNT(*) FROM financial'); total_financial_records = cur.fetchone()[0] or 0
-    conn.close()
-    return render_template('financial.html', financial_records=financial_records, total_income=total_income, total_expense=total_expense, net_profit=net_profit, total_financial_records=total_financial_records)
+        flash('Access denied.', 'error')
+        return redirect(url_for('dashboard'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute('SELECT * FROM financial ORDER BY created_at DESC')
+        financial_records = cur.fetchall()
+
+        cur.execute('SELECT SUM(amount) FROM financial WHERE transaction_type = ?', ('income',))
+        total_income = cur.fetchone()[0] or 0
+
+        cur.execute('SELECT SUM(amount) FROM financial WHERE transaction_type = ?', ('expense',))
+        total_expense = cur.fetchone()[0] or 0
+
+        net_profit = total_income - total_expense
+
+        cur.execute('SELECT COUNT(*) FROM financial')
+        total_financial_records = cur.fetchone()[0] or 0
+    except Exception:
+        # If any DB error, present empty/defaults but allow page to render
+        financial_records = []
+        total_income = 0
+        total_expense = 0
+        net_profit = 0
+        total_financial_records = 0
+    finally:
+        conn.close()
+
+    return render_template(
+        'financial.html',
+        financial_records=financial_records,
+        total_income=total_income,
+        total_expense=total_expense,
+        net_profit=net_profit,
+        total_financial_records=total_financial_records
+    )
 
 
-@app.route('/financial/<int:record_id>')
+@app.route('/financial/<int:record_id>', endpoint='view_financial')
 @login_required
 def view_financial(record_id):
     if current_user.role not in ['admin', 'accountant']:
-        flash('Access denied.', 'error'); return redirect(url_for('financial'))
-    conn = get_db_connection(); cur = conn.cursor()
-    cur.execute('SELECT * FROM financial WHERE id = ?', (record_id,)); rec = cur.fetchone(); conn.close()
-    if not rec:
-        flash('Financial record not found.', 'error'); return redirect(url_for('financial'))
-    return render_template('financial_view.html', record=rec)
-
-@app.route('/financial/<int:record_id>/delete', methods=['POST'])
-@login_required
-def delete_financial(record_id):
-    # only allow admin/manager to delete (adjust roles as needed)
-    if getattr(current_user, 'role', None) not in ['admin', 'manager']:
         flash('Access denied.', 'error')
         return redirect(url_for('financial'))
 
@@ -1562,317 +1058,268 @@ def delete_financial(record_id):
     try:
         cur.execute('SELECT * FROM financial WHERE id = ?', (record_id,))
         rec = cur.fetchone()
-        if not rec:
-            flash('Record not found.', 'error')
-            return redirect(url_for('financial'))
-
-        # optional: copy rec contents to a deletion log table (audit)
-        cur.execute('DELETE FROM financial WHERE id = ?', (record_id,))
-        conn.commit()
-        flash(f'Financial record F-{record_id} deleted.', 'success')
-    except Exception as e:
-        current_app.logger.exception('Error deleting financial record: %s', e)
-        flash(f'Error deleting record: {e}', 'error')
     finally:
         conn.close()
 
-    return redirect(url_for('financial'))
+    if not rec:
+        flash('Financial record not found.', 'error')
+        return redirect(url_for('financial'))
 
-@app.route('/financial/<int:record_id>/edit', methods=['GET', 'POST'])
+    return render_template('financial_view.html', record=rec)
+
+
+@app.route('/financial/<int:record_id>/edit', methods=['GET', 'POST'], endpoint='edit_financial')
 @login_required
 def edit_financial(record_id):
     if current_user.role not in ['admin', 'accountant']:
-        flash('Access denied.', 'error'); return redirect(url_for('financial'))
-    conn = get_db_connection(); cur = conn.cursor()
+        flash('Access denied.', 'error')
+        return redirect(url_for('financial'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
     if request.method == 'POST':
         debug_form('edit_financial', request.form)
         try:
-            cur.execute('UPDATE financial SET transaction_type=?, amount=?, category=?, description=?, transaction_date=?, reference=? WHERE id=?',
-                        (request.form.get('transaction_type', '').strip(), float(request.form.get('amount', '0') or 0), request.form.get('category', '').strip(), request.form.get('description', '').strip(), request.form.get('transaction_date'), request.form.get('reference', '').strip(), record_id))
-            conn.commit(); flash('Financial record updated!', 'success')
+            cur.execute(
+                'UPDATE financial SET transaction_type=?, amount=?, category=?, description=?, transaction_date=?, reference=? WHERE id=?',
+                (
+                    request.form.get('transaction_type', '').strip(),
+                    float(request.form.get('amount', '0') or 0),
+                    request.form.get('category', '').strip(),
+                    request.form.get('description', '').strip(),
+                    request.form.get('transaction_date'),
+                    request.form.get('reference', '').strip(),
+                    record_id
+                )
+            )
+            conn.commit()
+            flash('Financial record updated!', 'success')
         except Exception as e:
             flash(f'Error: {e}', 'error')
         finally:
             conn.close()
         return redirect(url_for('financial'))
-    cur.execute('SELECT * FROM financial WHERE id = ?', (record_id,)); rec = cur.fetchone(); conn.close()
+
+    # GET
+    try:
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM financial WHERE id = ?', (record_id,))
+        rec = cur.fetchone()
+    finally:
+        conn.close()
+
     if not rec:
-        flash('Financial record not found.', 'error'); return redirect(url_for('financial'))
+        flash('Financial record not found.', 'error')
+        return redirect(url_for('financial'))
+
     return render_template('financial_edit.html', record=rec)
 
 
-@app.route('/add_financial', methods=['POST'])
+@app.route('/add_financial', methods=['POST'], endpoint='add_financial')
 @login_required
 def add_financial():
     debug_form('add_financial', request.form)
     if current_user.role not in ['admin', 'accountant']:
-        flash('Access denied.', 'error'); return redirect(url_for('financial'))
+        flash('Access denied.', 'error')
+        return redirect(url_for('financial'))
+
     try:
-        ttype = request.form.get('type', '').strip(); amount = float(request.form.get('amount', '0') or 0)
+        ttype = request.form.get('type', '').strip()
+        amount = float(request.form.get('amount', '0') or 0)
         if not ttype or amount <= 0 or not request.form.get('category') or not request.form.get('description'):
-            flash('Required fields missing.', 'error'); return redirect(url_for('financial'))
-        conn = get_db_connection(); cur = conn.cursor()
-        cur.execute('INSERT INTO financial (transaction_type, amount, category, description, transaction_date, reference) VALUES (?, ?, ?, ?, ?, ?)',
-                    (ttype, amount, request.form.get('category', '').strip(), request.form.get('description', '').strip(), request.form.get('transaction_date'), request.form.get('reference', '')))
-        conn.commit(); conn.close(); flash('Financial transaction added!', 'success')
+            flash('Required fields missing.', 'error')
+            return redirect(url_for('financial'))
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO financial (transaction_type, amount, category, description, transaction_date, reference) VALUES (?, ?, ?, ?, ?, ?)',
+            (
+                ttype,
+                amount,
+                request.form.get('category', '').strip(),
+                request.form.get('description', '').strip(),
+                request.form.get('transaction_date'),
+                request.form.get('reference', '')
+            )
+        )
+        conn.commit()
+        conn.close()
+        flash('Financial transaction added!', 'success')
     except Exception as e:
         flash(f'Error: {e}', 'error')
+
     return redirect(url_for('financial'))
 
 
+
 # ----- Staff (list/view/edit/add) -----
-# ---------- STAFF LIST ----------
 @app.route('/staff')
 @login_required
 def staff():
     if current_user.role != 'admin':
-        flash('Access denied.', 'error')
-        return redirect(url_for('dashboard'))
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute('SELECT * FROM staff ORDER BY created_at DESC')
-        staff_members = cur.fetchall()
-
-        cur.execute("SELECT COUNT(*) FROM staff")
-        total_staff = cur.fetchone()[0] or 0
-
-        cur.execute("SELECT COUNT(*) FROM staff WHERE status = 'Active'")
-        active_today = cur.fetchone()[0] or 0
-
-        cur.execute("SELECT COUNT(*) FROM staff WHERE status IN ('On Leave','Leave')")
-        on_leave = cur.fetchone()[0] or 0
-
-        cur.execute("SELECT COUNT(*) FROM task WHERE status IN ('Pending','In Progress')")
-        active_tasks = cur.fetchone()[0] or 0
-    finally:
-        conn.close()
-
-    return render_template(
-        'staff.html',
-        staff_members=staff_members,
-        total_staff=total_staff,
-        active_today=active_today,
-        on_leave=on_leave,
-        active_tasks=active_tasks
-    )
+        flash('Access denied.', 'error'); return redirect(url_for('dashboard'))
+    conn = get_db_connection(); cur = conn.cursor()
+    cur.execute('SELECT * FROM staff ORDER BY created_at DESC'); staff_members = cur.fetchall()
+    cur.execute("SELECT COUNT(*) FROM staff"); total_staff = cur.fetchone()[0] or 0
+    cur.execute("SELECT COUNT(*) FROM staff WHERE status = 'Active'"); active_today = cur.fetchone()[0] or 0
+    cur.execute("SELECT COUNT(*) FROM staff WHERE status IN ('On Leave','Leave')"); on_leave = cur.fetchone()[0] or 0
+    cur.execute("SELECT COUNT(*) FROM task WHERE status IN ('Pending','In Progress')"); active_tasks = cur.fetchone()[0] or 0
+    conn.close()
+    return render_template('staff.html', staff_members=staff_members, total_staff=total_staff, active_today=active_today, on_leave=on_leave, active_tasks=active_tasks)
 
 
-# ---------- DELETE STAFF ----------
-@app.route('/delete_staff/<int:staff_id>', methods=['POST'])
-@login_required
-def delete_staff(staff_id):
-    # Only admin/manager allowed to delete
-    if getattr(current_user, 'role', None) not in ['admin', 'manager']:
-        flash('Access denied.', 'error')
-        return redirect(url_for('staff'))
-
-    # Server-side self-delete protection
-    try:
-        if getattr(current_user, 'id', None) is not None and int(current_user.id) == int(staff_id):
-            flash('You cannot delete your own account.', 'error')
-            return redirect(url_for('staff'))
-    except Exception:
-        # continue with caution
-        pass
-
-    # local import so you don't have to add it at top if you prefer
-    from datetime import datetime
-
-    conn = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        # fetch the record to get name
-        cur.execute('SELECT id, first_name, last_name FROM staff WHERE id = ?', (staff_id,))
-        row = cur.fetchone()
-        if not row:
-            flash('Staff member not found.', 'error')
-            return redirect(url_for('staff'))
-
-        # row may be tuple or dict-like
-        try:
-            if isinstance(row, dict):
-                fname = row.get('first_name', '')
-                lname = row.get('last_name', '')
-            else:
-                fname = row[1] if len(row) > 1 else ''
-                lname = row[2] if len(row) > 2 else ''
-        except Exception:
-            fname, lname = '', ''
-        record_repr = f"{fname} {lname}".strip()
-
-        # perform delete
-        cur.execute('DELETE FROM staff WHERE id = ?', (staff_id,))
-        conn.commit()
-
-        # ensure deletion_logs table exists and insert audit row
-        try:
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS deletion_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    table_name TEXT,
-                    record_id INTEGER,
-                    record_repr TEXT,
-                    deleted_by TEXT,
-                    deleted_by_id INTEGER,
-                    timestamp TEXT
-                )
-            ''')
-            conn.commit()
-
-            deleter_id = getattr(current_user, 'id', None)
-            deleter_ident = getattr(current_user, 'username', None) or getattr(current_user, 'email', None) or str(deleter_id)
-            timestamp = datetime.utcnow().isoformat() + 'Z'
-
-            cur.execute('''
-                INSERT INTO deletion_logs (table_name, record_id, record_repr, deleted_by, deleted_by_id, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', ('staff', staff_id, record_repr, str(deleter_ident), deleter_id, timestamp))
-            conn.commit()
-        except Exception as log_exc:
-            current_app.logger.exception('Failed to write deletion log: %s', log_exc)
-
-        current_app.logger.info(
-            'User %s (id=%s) deleted staff id=%s (%s) at %s',
-            getattr(current_user, 'username', 'unknown'),
-            getattr(current_user, 'id', 'unknown'),
-            staff_id,
-            record_repr,
-            timestamp if 'timestamp' in locals() else ''
-        )
-
-        flash(f'Staff member {record_repr} (STF-{staff_id}) deleted successfully.', 'success')
-
-    except Exception as e:
-        current_app.logger.exception('Error deleting staff member: %s', e)
-        flash(f'Error deleting staff member: {e}', 'error')
-    finally:
-        if conn:
-            conn.close()
-
-    return redirect(url_for('staff'))
-
-
-# ---------- VIEW STAFF ----------
 @app.route('/staff/<int:staff_id>')
 @login_required
 def view_staff(staff_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute('SELECT * FROM staff WHERE id = ?', (staff_id,))
-        s = cur.fetchone()
-    finally:
-        conn.close()
-
+    conn = get_db_connection(); cur = conn.cursor()
+    cur.execute('SELECT * FROM staff WHERE id = ?', (staff_id,)); s = cur.fetchone(); conn.close()
     if not s:
-        flash('Staff member not found.', 'error')
-        return redirect(url_for('staff'))
-
+        flash('Staff member not found.', 'error'); return redirect(url_for('staff'))
     return render_template('staff_view.html', staff=s)
 
 
-# ---------- EDIT STAFF ----------
 @app.route('/staff/<int:staff_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_staff(staff_id):
     if current_user.role != 'admin':
-        flash('Access denied.', 'error')
-        return redirect(url_for('staff'))
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
+        flash('Access denied.', 'error'); return redirect(url_for('staff'))
+    conn = get_db_connection(); cur = conn.cursor()
     if request.method == 'POST':
         debug_form('edit_staff', request.form)
         try:
-            first_name = request.form.get('first_name', '').strip()
-            last_name = request.form.get('last_name', '').strip()
-            position = request.form.get('position', '').strip()
-            department = request.form.get('department', '').strip()
-            email = request.form.get('email', '').strip()
-            phone = request.form.get('phone', '').strip()
-            status = request.form.get('status', 'Active').strip()
-            id_number = request.form.get('id_number', '').strip()
-
-            cur.execute(
-                'UPDATE staff SET first_name=?, last_name=?, position=?, department=?, email=?, phone=?, status=?, id_number=? WHERE id=?',
-                (first_name, last_name, position, department, email, phone, status, id_number, staff_id)
-            )
-            conn.commit()
-            flash('Staff updated!', 'success')
+            cur.execute('UPDATE staff SET first_name=?, last_name=?, position=?, department=?, email=?, phone=?, status=?, id_number=? WHERE id=?',
+                        (request.form.get('first_name', '').strip(), request.form.get('last_name', '').strip(), request.form.get('position', '').strip(), request.form.get('department', '').strip(), request.form.get('email', '').strip(), request.form.get('phone', '').strip(), request.form.get('status', 'Active').strip(), staff_id))
+            conn.commit(); flash('Staff updated!', 'success')
         except Exception as e:
-            current_app.logger.exception('Error updating staff: %s', e)
             flash(f'Error: {e}', 'error')
         finally:
             conn.close()
         return redirect(url_for('staff'))
-
-    # GET
-    try:
-        cur.execute('SELECT * FROM staff WHERE id = ?', (staff_id,))
-        s = cur.fetchone()
-    finally:
-        conn.close()
-
+    cur.execute('SELECT * FROM staff WHERE id = ?', (staff_id,)); s = cur.fetchone(); conn.close()
     if not s:
-        flash('Staff member not found.', 'error')
-        return redirect(url_for('staff'))
+        flash('Staff member not found.', 'error'); return redirect(url_for('staff'))
     return render_template('staff_edit.html', staff=s)
 
 
-# ---------- ADD STAFF ----------
 @app.route('/add_staff', methods=['POST'])
 @login_required
 def add_staff():
     debug_form('add_staff', request.form)
     if current_user.role != 'admin':
-        flash('Access denied.', 'error')
-        return redirect(url_for('staff'))
+        flash('Access denied.', 'error'); return redirect(url_for('staff'))
+    try:
+        fn = request.form.get('first_name', '').strip(); ln = request.form.get('last_name', '').strip(); pos = request.form.get('position', '').strip(); phone = request.form.get('phone', '').strip()
+        if not fn or not ln or not pos or not phone:
+            flash('Required fields missing.', 'error'); return redirect(url_for('staff'))
+        conn = get_db_connection(); cur = conn.cursor()
+        cur.execute('INSERT INTO staff (first_name, last_name, position, department, email, phone, address, dob, date_employed, id_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    (fn, ln, pos, request.form.get('department', ''), request.form.get('email', ''), phone, request.form.get('address', ''), request.form.get('dob'), request.form.get('date_employed')))
+        conn.commit(); conn.close(); flash('Staff member added!', 'success')
+    except Exception as e:
+        flash(f'Error: {e}', 'error')
+    return redirect(url_for('staff'))
+
+
+# ----- Tasks list/add + status update -----
+# ----- Tasks list/add + status update -----
+@app.route('/tasks')
+@login_required
+def tasks():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Fetch tasks
+    try:
+        cur.execute('SELECT * FROM task ORDER BY due_date')
+        tasks = cur.fetchall()
+    except Exception:
+        tasks = []
+
+    # Fetch staff members for the dropdown (convert rows -> dicts)
+    try:
+        cur.execute('SELECT id, first_name, last_name FROM staff ORDER BY first_name')
+        rows = cur.fetchall()
+        cols = [c[0] for c in cur.description] if cur.description else []
+        staff_members = [dict(zip(cols, r)) for r in rows]
+        # map of id -> "First Last" for display in the tasks table
+        staff_map = { str(s['id']): f"{s['first_name']} {s['last_name']}" for s in staff_members }
+    except Exception:
+        staff_members = []
+        staff_map = {}
+
+    # Fetch task counts
+    try:
+        cur.execute("SELECT COUNT(*) FROM task WHERE status = 'Pending'")
+        pending_count = cur.fetchone()[0] or 0
+    except Exception:
+        pending_count = 0
 
     try:
-        fn = request.form.get('first_name', '').strip()
-        ln = request.form.get('last_name', '').strip()
-        pos = request.form.get('position', '').strip()
-        phone = request.form.get('phone', '').strip()
+        cur.execute("SELECT COUNT(*) FROM task WHERE status = 'In Progress'")
+        inprogress_count = cur.fetchone()[0] or 0
+    except Exception:
+        inprogress_count = 0
 
-        if not fn or not ln or not pos or not phone:
-            flash('Required fields missing.', 'error')
-            return redirect(url_for('staff'))
+    try:
+        cur.execute("SELECT COUNT(*) FROM task WHERE status = 'Completed'")
+        completed_count = cur.fetchone()[0] or 0
+    except Exception:
+        completed_count = 0
 
-        department = request.form.get('department', '').strip()
-        email = request.form.get('email', '').strip()
-        address = request.form.get('address', '').strip()
-        dob = request.form.get('dob') or None
-        date_employed = request.form.get('date_employed') or None
-        id_number = request.form.get('id_number', '').strip()
-        status = request.form.get('status', 'active').strip()
+    try:
+        today_str = date.today().isoformat()
+        cur.execute("SELECT COUNT(*) FROM task WHERE due_date IS NOT NULL AND due_date < ? AND status != 'Completed'", (today_str,))
+        overdue_count = cur.fetchone()[0] or 0
+    except Exception:
+        overdue_count = 0
 
+    conn.close()
+
+    return render_template('tasks.html',
+                          tasks=tasks,
+                          pending_count=pending_count,
+                          inprogress_count=inprogress_count,
+                          completed_count=completed_count,
+                          overdue_count=overdue_count,
+                          staff_members=staff_members,
+                          staff_map=staff_map)
+
+@app.route('/add_task', methods=['POST'])
+@login_required
+def add_task():
+    debug_form('add_task', request.form)
+    try:
+        title = request.form.get('title', '').strip()
+        if not title:
+            flash('Task title is required.', 'error')
+            return redirect(url_for('tasks'))
+        
         conn = get_db_connection()
         cur = conn.cursor()
-
-        # IMPORTANT: make sure your staff table has the columns below (id_number, status)
-        cur.execute(
-            'INSERT INTO staff (first_name, last_name, position, department, email, phone, address, dob, date_employed, id_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (fn, ln, pos, department, email, phone, address, dob, date_employed, id_number, status)
-        )
+        cur.execute('INSERT INTO task (title, description, assigned_to, status, priority, due_date, category) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (title, 
+                     request.form.get('description', ''), 
+                     request.form.get('assigned_to', ''), 
+                     'Pending', 
+                     request.form.get('priority', 'Normal'), 
+                     request.form.get('due_date'), 
+                     request.form.get('category', 'general')))
         conn.commit()
         conn.close()
-        flash('Staff member added!', 'success')
+        flash('Task added!', 'success')
     except Exception as e:
-        current_app.logger.exception('Error adding staff: %s', e)
-        flash(f'Error: {e}', 'error')
+        flash(f'Error adding task: {e}', 'error')
+    return redirect(url_for('tasks'))
 
-    return redirect(url_for('staff'))
 
 # ----- NEW: task view & edit routes (added to resolve BuildError for view/edit links) -----
 @app.route('/tasks/<int:task_id>')
 @login_required
 def view_task(task_id):
-    conn = get_db_connection(); cur = conn.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute('SELECT * FROM task WHERE id = ?', (task_id,))
     task = cur.fetchone()
     conn.close()
@@ -1881,140 +1328,249 @@ def view_task(task_id):
         return redirect(url_for('tasks'))
     return render_template('task_view.html', task=task)
 
-# --- Task list and add_task handlers (paste into app.py) ---
-from flask import render_template, request, redirect, url_for, flash
-from flask_login import login_required
-import sqlite3
 
-# helper: convert sqlite rows to simple objects with attribute access
-def rows_to_objs(rows, cursor):
-    cols = []
-    try:
-        cols = [c[0] for c in cursor.description]
-    except Exception:
-        cols = []
-    objs = []
-    for r in rows:
-        # r might be sqlite3.Row, dict, or tuple
-        if hasattr(r, "keys"):
-            d = {k: r[k] for k in r.keys()}
-        elif isinstance(r, dict):
-            d = r
-        else:
-            d = {}
-            for i, col in enumerate(cols):
-                d[col] = r[i] if i < len(r) else None
-        class Obj: pass
-        o = Obj()
-        o.__dict__.update(d)
-        objs.append(o)
-    return objs
-
-import datetime   # put near top of app.py if not already present
-
-def _convert_value_for_json(v):
-    """Make values JSON serializable (dates -> iso string, bytes -> str, primitives pass)."""
-    if v is None:
-        return None
-    if isinstance(v, (datetime.date, datetime.datetime)):
-        return v.isoformat()
-    if isinstance(v, (bytes, bytearray)):
-        try:
-            return v.decode('utf-8', errors='ignore')
-        except Exception:
-            return str(v)
-    # primitives (int, float, str, bool) are left as-is
-    return v
-
-def _obj_to_plain_dict(o):
-    """Turn attribute-access object (rows_to_objs/Obj) into a plain dict safe for JSON."""
-    if hasattr(o, '__dict__'):
-        d = {}
-        for k, v in o.__dict__.items():
-            if k.startswith('_'):
-                continue
-            d[k] = _convert_value_for_json(v)
-        return d
-    # fallback: try mapping
-    try:
-        return {k: _convert_value_for_json(v) for k, v in dict(o).items()}
-    except Exception:
-        return {"id": getattr(o, "id", None), "repr": str(o)}
-
-@app.route('/tasks')
+@app.route('/tasks/<int:task_id>/edit', methods=['GET', 'POST'])
 @login_required
-def tasks():
-    """
-    Render task list page and supply tasks_json (list of plain dicts) for client JS.
-    """
-    conn = None
+def edit_task(task_id):
+    # restrict edits to admin/manager to match your other patterns
+    if current_user.role not in ['admin', 'manager']:
+        flash('Access denied.', 'error')
+        return redirect(url_for('tasks'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        debug_form('edit_task', request.form)
+        try:
+            cur.execute('UPDATE task SET title=?, description=?, assigned_to=?, status=?, priority=?, due_date=?, category=? WHERE id=?',
+                        (request.form.get('title', '').strip(),
+                         request.form.get('description', '').strip(),
+                         request.form.get('assigned_to', '').strip(),
+                         request.form.get('status', 'Pending'),
+                         request.form.get('priority', 'Normal'),
+                         request.form.get('due_date'),
+                         request.form.get('category', 'general'),
+                         task_id))
+            conn.commit()
+            flash('Task updated!', 'success')
+        except Exception as e:
+            flash(f'Error updating task: {e}', 'error')
+        finally:
+            conn.close()
+        return redirect(url_for('tasks'))
+
+    # GET: fetch the task
+    cur.execute('SELECT * FROM task WHERE id = ?', (task_id,))
+    task = cur.fetchone()
+    conn.close()
+    if not task:
+        flash('Task not found.', 'error')
+        return redirect(url_for('tasks'))
+
+    # Also fetch staff list for the edit form dropdown (convert to dicts)
+    conn = get_db_connection()
+    cur = conn.cursor()
     try:
+        cur.execute('SELECT id, first_name, last_name FROM staff ORDER BY first_name')
+        rows = cur.fetchall()
+        cols = [c[0] for c in cur.description] if cur.description else []
+        staff_members = [dict(zip(cols, r)) for r in rows]
+    except Exception:
+        staff_members = []
+    finally:
+        conn.close()
+
+    return render_template('task_edit.html', task=task, staff_members=staff_members)
+@app.route('/tasks/<int:task_id>/delete', methods=['POST'])
+@login_required
+def delete_task(task_id):
+    # permission guard (matches your edit pattern)
+    if current_user.role not in ['admin', 'manager']:
+        flash('Access denied.', 'error')
+        return redirect(url_for('tasks'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        # Optionally: you could check the task exists first
+        cur.execute('SELECT id, title FROM task WHERE id = ?', (task_id,))
+        found = cur.fetchone()
+        if not found:
+            flash('Task not found.', 'error')
+            return redirect(url_for('tasks'))
+
+        cur.execute('DELETE FROM task WHERE id = ?', (task_id,))
+        conn.commit()
+        flash(f"Task T-{task_id} deleted.", 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error deleting task: {e}", 'error')
+    finally:
+        conn.close()
+
+    return redirect(url_for('tasks'))
+
+
+# ----- END new task view/edit routes -----
+
+
+@app.route('/update_task_status', methods=['POST'])
+@login_required
+def update_task_status():
+    try:
+        data = request.get_json()
+        task_id = data.get('task_id')
+        status = data.get('status')
+        if not task_id or not status:
+            return jsonify({'success': False, 'message': 'Missing data'})
+        
         conn = get_db_connection()
         cur = conn.cursor()
-
-        # staff members (for the create modal)
-        cur.execute("SELECT id, first_name, last_name FROM staff ORDER BY id")
-        staff_rows = cur.fetchall()
-        staff_members = rows_to_objs(staff_rows, cur)
-
-        # tasks list (attribute-access objects for template loops)
-        cur.execute("SELECT * FROM task ORDER BY id DESC")
-        task_rows = cur.fetchall()
-        tasks_list = rows_to_objs(task_rows, cur)
-
-        # counts
-        cur.execute("SELECT COUNT(*) FROM task WHERE status = ?", ('Pending',))
-        pending_count = cur.fetchone()[0] or 0
-        cur.execute("SELECT COUNT(*) FROM task WHERE status = ?", ('In Progress',))
-        inprogress_count = cur.fetchone()[0] or 0
-        cur.execute("SELECT COUNT(*) FROM task WHERE status = ?", ('Completed',))
-        completed_count = cur.fetchone()[0] or 0
-
-        # overdue (uses sqlite date() comparison)
-        try:
-            cur.execute("SELECT COUNT(*) FROM task WHERE due_date IS NOT NULL AND due_date < date('now')")
-            overdue_count = cur.fetchone()[0] or 0
-        except Exception:
-            overdue_count = 0
-
-        # staff_map for resolving assigned_to
-        staff_map = {}
-        for s in staff_members:
-            sid = getattr(s, 'id', None)
-            name = f"{getattr(s,'first_name','') or ''} {getattr(s,'last_name','') or ''}".strip()
-            staff_map[sid] = name
-            staff_map[str(sid)] = name
-
+        cur.execute('UPDATE task SET status = ? WHERE id = ?', (status, task_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Task status updated'})
     except Exception as e:
-        # On error, fallback to demo data so page still renders
-        flash(f"Could not load tasks (fallback demo): {e}", "warning")
-        class D:
-            def __init__(self, d): self.__dict__.update(d)
-        tasks_list = [
-            D({"id": 1, "title": "Demo task", "description": "Demo", "assigned_to": None,
-               "due_date": None, "priority": "Normal", "category": "general", "status": "Pending"})
-        ]
-        staff_members = []
-        pending_count = inprogress_count = completed_count = overdue_count = 0
-        staff_map = {}
+        return jsonify({'success': False, 'message': str(e)})
+# ----- Reports -----
+@app.route('/reports')
+@login_required
+def reports():
+    """
+    Render reports page and pass recent_reports (most recent 50) from DB.
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT id, report_name, report_type, format, filepath, period_start, period_end, generated_by, notes, created_at
+            FROM reports
+            ORDER BY created_at DESC
+            LIMIT 50
+        """)
+        recent_reports = cur.fetchall()
+    except Exception as e:
+        print("Error fetching recent reports:", e)
+        recent_reports = []
     finally:
-        if conn:
+        conn.close()
+    return render_template('reports.html', recent_reports=recent_reports)
+
+
+@app.route('/generate-report', methods=['POST'])
+@login_required
+def generate_report():
+    """
+    Generate a report. For CSV/Excel we produce a CSV file in static/exports,
+    insert a metadata row into `reports`, and return the CSV for download.
+    Other formats simply flash and redirect (can be extended later).
+    """
+    report_type = (request.form.get('report_type') or 'custom').strip().lower()
+    report_format = (request.form.get('format') or 'pdf').strip().lower()
+    start_date = request.form.get('start_date') or request.form.get('start') or ''
+    end_date = request.form.get('end_date') or request.form.get('end') or ''
+    period = (request.form.get('period') or '').strip()
+    generated_by = getattr(current_user, 'username', 'system')
+
+    print("GENERATE_REPORT called", {'user': generated_by, 'type': report_type, 'format': report_format})
+
+    # Only CSV/Excel handled server-side here (safe, simple)
+    if report_format in ('csv', 'excel'):
+        try:
+            conn = get_db_connection(); cur = conn.cursor()
+
+            # Build rows and headers depending on report_type
+            if report_type == 'staff':
+                cur.execute("SELECT first_name, last_name, position, department, email, phone FROM staff ORDER BY created_at DESC")
+                headers = ['first_name', 'last_name', 'position', 'department', 'email', 'phone']
+            elif report_type == 'financial':
+                cur.execute("SELECT transaction_date, transaction_type, category, amount, description FROM financial ORDER BY transaction_date DESC")
+                headers = ['transaction_date', 'transaction_type', 'category', 'amount', 'description']
+            elif report_type in ('livestock', 'breeding'):
+                cur.execute("SELECT id, tag_number, breed, birth_date, weight, status FROM animal ORDER BY created_at DESC")
+                headers = ['id', 'tag_number', 'breed', 'birth_date', 'weight', 'status']
+            elif report_type == 'feed':
+                cur.execute("SELECT created_at, feed_type, quantity, animal_group FROM feed ORDER BY created_at DESC")
+                headers = ['created_at', 'feed_type', 'quantity', 'animal_group']
+            else:
+                # default to tasks
+                cur.execute("SELECT id, title, status, due_date, created_at FROM task ORDER BY created_at DESC")
+                headers = ['id', 'title', 'status', 'due_date', 'created_at']
+
+            rows = cur.fetchall()
             conn.close()
 
-    # Build JSON-serializable list for client JS (plain dicts)
-    tasks_json = [_obj_to_plain_dict(t) for t in tasks_list]
+            # prepare CSV text
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(headers)
+            for r in rows:
+                # sqlite3.Row -> allow index access matching headers where possible
+                row_vals = []
+                try:
+                    # r.keys() exists because row_factory=sqlite3.Row
+                    for h in headers:
+                        if h in r.keys():
+                            row_vals.append(r[h])
+                        else:
+                            # fallback to index by position
+                            row_vals.append(list(r)[headers.index(h)] if headers.index(h) < len(list(r)) else '')
+                except Exception:
+                    row_vals = list(r)
+                writer.writerow(row_vals)
+            csv_data = output.getvalue()
+            output.close()
 
-    return render_template('task_management.html',
-                           tasks=tasks_list,
-                           tasks_json=tasks_json,
-                           staff_members=staff_members,
-                           pending_count=pending_count,
-                           inprogress_count=inprogress_count,
-                           completed_count=completed_count,
-                           overdue_count=overdue_count,
-                           staff_map=staff_map)
+            # ensure exports dir exists
+            exports_dir = BASE_DIR / 'static' / 'exports'
+            exports_dir.mkdir(parents=True, exist_ok=True)
 
-# ----- Reports ----
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            ext = 'csv'
+            filename = f"{report_type}_report_{timestamp}.{ext}"
+            file_path = exports_dir / filename
+
+            # write file to disk
+            file_path.write_text(csv_data, encoding='utf-8')
+
+            # insert metadata row into reports table (best-effort)
+            try:
+                conn = get_db_connection(); cur = conn.cursor()
+                cur.execute("""
+                    INSERT INTO reports (report_name, report_type, format, filepath, period_start, period_end, generated_by, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    f"{report_type.capitalize()} report {timestamp}",
+                    report_type,
+                    report_format,
+                    f"exports/{filename}",
+                    start_date or None,
+                    end_date or None,
+                    generated_by,
+                    f"period={period}"
+                ))
+                conn.commit()
+                conn.close()
+            except Exception as me:
+                print("Warning: could not save reports metadata:", me)
+
+            # return CSV as attachment for immediate download
+            response = make_response(csv_data)
+            response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+            response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+            return response
+
+        except Exception as e:
+            print("Error generating report:", e)
+            traceback.print_exc()
+            flash(f"Error: {e}", "error")
+            return redirect(url_for('reports'))
+
+    # fallback for other formats
+    flash(f"{report_type.capitalize()} report request received (format: {report_format}).", "success")
+    return redirect(url_for('reports'))
+
 
 # ----- Settings and user management -----
 @app.route('/settings')
@@ -2061,12 +1617,15 @@ def add_user():
 # ----- Run server -----
 
 # --- API: delete task (AJAX) ---
-@app.route('/delete_task', methods=['POST'])
+# Renamed the function and endpoint to avoid endpoint-name collision with the
+# /tasks/<int:task_id>/delete route which uses endpoint 'delete_task'.
+@app.route('/delete_task', methods=['POST'], endpoint='delete_task_ajax')
 @login_required
-def delete_task():
+def delete_task_ajax():
     try:
         # accept either form-encoded or JSON body
-        task_id = request.form.get('task_id') or (request.get_json(silent=True) or {}).get('task_id')
+        payload = request.get_json(silent=True)
+        task_id = request.form.get('task_id') or (payload or {}).get('task_id')
         if not task_id:
             return jsonify({'success': False, 'message': 'Missing task_id'})
         conn = get_db_connection(); cur = conn.cursor()
@@ -2088,3 +1647,74 @@ if __name__ == '__main__':
     print("Starting server: http://localhost:5000"); print("=" * 60)
     app.run(debug=True, host='0.0.0.0', port=5000)
 
+def init_database():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # create core tables (idempotent)
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS user (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            role TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS staff (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            position TEXT NOT NULL,
+            department TEXT,
+            email TEXT,
+            phone TEXT NOT NULL,
+            address TEXT,
+            dob DATE,
+            date_employed DATE,
+            status TEXT DEFAULT 'Active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # add default users if none
+    cur.execute('SELECT COUNT(*) FROM user')
+    if cur.fetchone()[0] == 0:
+        defaults = [
+            ('admin', 'admin@dlfarm.com', generate_password_hash('admin123'), 'admin'),
+            ('manager', 'manager@dlfarm.com', generate_password_hash('manager123'), 'manager'),
+            ('accountant', 'accountant@dlfarm.com', generate_password_hash('accountant123'), 'accountant'),
+        ]
+        for u, e, p, r in defaults:
+            cur.execute(
+                'INSERT OR IGNORE INTO user (username, email, password, role) VALUES (?, ?, ?, ?)',
+                (u, e, p, r)
+            )
+        print("✓ Created default users")
+
+    # sample staff
+    cur.execute('SELECT COUNT(*) FROM staff')
+    if cur.fetchone()[0] == 0:
+        sample_staff = [
+            ('James', 'Kipianui Rotich', 'Farm Manager', 'Management', 'james@dlfarm.com', '0721368651', 'Eldoret', '1985-03-15', '2020-01-10'),
+            ('Michael', 'Kemboi', 'Mechanic', 'Maintenance', 'michael@dlfarm.com', '0720977192', 'Eldoret', '1990-07-22', '2021-03-05'),
+            ('Nicholas', 'Yego', 'Accountant', 'Finance', 'nicholas@dlfarm.com', '0712441667', 'Eldoret', '1988-11-30', '2019-08-15'),
+        ]
+
+        for fn, ln, pos, dept, email, phone, addr, dob, emp_date in sample_staff:
+            cur.execute(
+                'INSERT INTO staff (first_name, last_name, position, department, email, phone, address, dob, date_employed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (fn, ln, pos, dept, email, phone, addr, dob, emp_date)
+            )
+        print("✓ Created sample staff")
+
+    conn.commit()
+    conn.close()
+    print("✓ Database initialized")
+
+if __name__ == '__main__':
+    init_database()
+    app.run(debug=True)
