@@ -1,0 +1,1156 @@
+{% extends "base.html" %}
+{% block title %}Animals{% endblock %}
+{% block page_title %}Animals{% endblock %}
+{% block page_subtitle %}Livestock Inventory & Health Status{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== COMPACT LAYOUT ===== */
+.content-card { 
+  padding: 20px; 
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+
+/* COMPACT STAT CARDS */
+.stat-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+  border-left: 3px solid #3b82f6;
+  transition: all 0.2s ease;
+  height: 100%;
+  position: relative;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+.stat-card i {
+  font-size: 24px;
+  color: #ffffff;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.stat-card h3 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.1;
+}
+
+.stat-card p {
+  margin: 5px 0 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Stat card specific colors */
+.stat-card:nth-child(1) i { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+.stat-card:nth-child(2) i { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.stat-card:nth-child(3) i { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.stat-card:nth-child(4) i { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+
+/* COMPACT TABLE */
+.table-responsive {
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.table thead th {
+  background: #1e293b;
+  color: white;
+  font-weight: 600;
+  padding: 14px 12px;
+  border: none;
+  font-size: 0.85rem;
+}
+
+.table tbody td {
+  padding: 12px;
+  vertical-align: middle;
+  border-color: #f1f5f9;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+/* COMPACT BREED ANALYSIS SECTION */
+.breed-analysis-section {
+  margin-top: 25px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.section-header h5 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.section-subtitle {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin-top: 3px;
+  width: 100%;
+}
+
+/* Compact Breed Cards Grid - Optimized for many items */
+.breed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.breed-card {
+  background: white;
+  border-radius: 10px;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.breed-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.breed-card-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  padding: 15px;
+  position: relative;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.breed-name {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.breed-count {
+  font-size: 1.4rem;
+  font-weight: 800;
+  opacity: 0.9;
+}
+
+.breed-subtitle {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.breed-card-body {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Compact Health Status Grid */
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.health-item {
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.health-item:hover {
+  background: #f1f5f9;
+}
+
+.health-value {
+  display: block;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 2px;
+}
+
+.health-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Health Status Colors */
+.health-healthy .health-value { color: #10b981; }
+.health-treatment .health-value { color: #f59e0b; }
+.health-nonactive .health-value { color: #64748b; }
+.health-critical .health-value { color: #ef4444; }
+
+/* Compact Metrics Row */
+.metrics-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 10px;
+}
+
+.metric {
+  text-align: center;
+  flex: 1;
+}
+
+.metric-value {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Health Status Bar - Simple */
+.health-bar-container {
+  margin-top: 10px;
+}
+
+.health-bar-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.health-bar-label span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.health-bar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  border-radius: 3px;
+}
+
+/* Compact Summary Cards */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.summary-card h6 {
+  color: #1e293b;
+  font-weight: 700;
+  margin-bottom: 15px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-card h6 i {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+/* Compact Status Legend */
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 0.8rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.healthy { background: #10b981; }
+.status-dot.treatment { background: #f59e0b; }
+.status-dot.nonactive { background: #64748b; }
+.status-dot.critical { background: #ef4444; }
+
+.status-label {
+  color: #475569;
+  font-weight: 500;
+}
+
+/* Compact Update Footer */
+.update-footer {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.update-footer small {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.time-badge {
+  background: #10b981;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  margin-left: 6px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 30px 15px;
+}
+
+.empty-state i {
+  font-size: 2rem;
+  color: #cbd5e1;
+  margin-bottom: 15px;
+}
+
+.empty-state p {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.btn-outline-secondary {
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Badges */
+.badge {
+  padding: 5px 10px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-radius: 12px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .breed-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .stat-card {
+    padding: 15px;
+  }
+  
+  .stat-card i {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .breed-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .breed-analysis-section {
+    padding: 15px;
+  }
+  
+  .summary-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Pagination Controls for Many Breeds */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.page-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.page-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.page-info {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <!-- Header with Add Button -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h4 style="margin:0; color:#1e293b; font-weight:700;">Livestock Inventory</h4>
+      <p class="text-muted mb-0" style="font-size:0.9rem;">Monitor and manage your animal population</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAnimalModal">
+      <i class="fas fa-plus-circle me-2"></i>Add Animal
+    </button>
+  </div>
+
+  <!-- COMPACT STATISTICS CARDS -->
+  <div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card">
+        <i class="fas fa-paw"></i>
+        <div>
+          <h3 id="totalAnimals">{{ total_animals }}</h3>
+          <p>Total Animals</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card">
+        <i class="fas fa-heartbeat"></i>
+        <div>
+          <h3 id="healthyCount">—</h3>
+          <p>Healthy Animals</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card">
+        <i class="fas fa-notes-medical"></i>
+        <div>
+          <h3 id="treatmentCount">—</h3>
+          <p>Under Treatment</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card">
+        <i class="fas fa-list"></i>
+        <div>
+          <h3 id="uniqueBreeds">—</h3>
+          <p>Unique Breeds</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPACT ANIMALS TABLE -->
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Tag #</th>
+          <th>Breed</th>
+          <th>Birth Date</th>
+          <th>Weight</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if animals %}
+          {% for a in animals %}
+          <tr>
+            <td><strong>A-{{ a.id }}</strong></td>
+            <td><code>{{ a.tag_number }}</code></td>
+            <td><strong>{{ a.breed }}</strong></td>
+            <td>{{ a.birth_date or '—' }}</td>
+            <td>
+              {% if a.weight %}
+                <span class="fw-bold">{{ a.weight }} kg</span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if a.health_status and 'treatment' in a.health_status.lower() %}
+                <span class="badge bg-warning">Under Treatment</span>
+              {% elif a.status == 'Active' %}
+                <span class="badge bg-success">Active</span>
+              {% elif a.status == 'Inactive' %}
+                <span class="badge bg-secondary">Non-Active</span>
+              {% else %}
+                <span class="badge bg-info">{{ a.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <a class="btn btn-outline-info" href="{{ url_for('view_animal', animal_id=a.id) }}" title="View">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a class="btn btn-outline-warning" href="{{ url_for('edit_animal', animal_id=a.id) }}" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </a>
+              </div>
+
+              {# DELETE button: only in animals.html. Uses confirmAction defined in base.html #}
+              <form id="del-form-{{ a.id }}" method="POST" action="{{ url_for('delete_animal', animal_id=a.id) }}" style="display:inline;margin-left:8px;">
+                <input type="hidden" name="confirm" value="1">
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                  onclick="confirmAction('Delete animal A-{{ a.id }} ({{ a.tag_number or '' }})? This action cannot be undone.', function(ok){ if(ok) document.getElementById('del-form-{{ a.id }}').submit(); })">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="empty-state">
+              <i class="fas fa-paw"></i>
+              <p class="mb-0">No animals found. Add your first animal to get started.</p>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- COMPACT BREED ANALYSIS SECTION -->
+  <div class="breed-analysis-section">
+    <div class="section-header">
+      <div>
+        <h5>Breed Health Overview</h5>
+        <p class="section-subtitle">Key health metrics by breed</p>
+      </div>
+      <div>
+        <button id="exportBreedSummary" class="btn btn-outline-secondary">
+          <i class="fas fa-download me-1"></i>Export
+        </button>
+      </div>
+    </div>
+
+    <!-- Breed Cards Grid with Pagination -->
+    <div id="breedAnalysisArea" class="breed-grid" aria-live="polite">
+      <!-- Breed cards will be inserted here by JavaScript -->
+    </div>
+
+    <!-- Pagination Controls (only shown when many breeds) -->
+    <div id="paginationControls" class="pagination-controls d-none">
+      <button id="prevPage" class="page-btn">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span id="pageInfo" class="page-info">Page 1 of 1</span>
+      <button id="nextPage" class="page-btn">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <h6><i class="fas fa-heartbeat"></i> Health Status</h6>
+        <div id="healthStatus"></div>
+        <div class="status-legend">
+          <div class="status-item">
+            <span class="status-dot healthy"></span>
+            <span class="status-label">Healthy</span>
+          </div>
+          <div class="status-item">
+            <span class="status-dot treatment"></span>
+            <span class="status-label">Treatment</span>
+          </div>
+          <div class="status-item">
+            <span class="status-dot nonactive"></span>
+            <span class="status-label">Non-Active</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <h6><i class="fas fa-chart-bar"></i> Insights</h6>
+        <div id="insights"></div>
+      </div>
+    </div>
+    
+    <!-- Update Footer -->
+    <div class="update-footer">
+      <small>Updated: <span class="time-badge" id="lastUpdate">Just now</span></small>
+    </div>
+  </div>
+</div>
+
+<!-- Add Animal Modal -->
+<div class="modal fade" id="addAnimalModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Animal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_animal') }}">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Tag Number *</label>
+              <input name="tag_number" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Breed *</label>
+              <input name="breed" class="form-control" required>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Birth Date</label>
+              <input name="birth_date" type="date" class="form-control">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Weight (kg)</label>
+              <input name="weight" type="number" step="0.01" class="form-control">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-select">
+                <option value="Active" selected>Active</option>
+                <option value="Inactive">Non-Active</option>
+                <option value="Sold">Sold</option>
+                <option value="Deceased">Deceased</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Pen Number</label>
+            <input name="pen_number" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Health Status</label>
+            <select name="health_status" class="form-select">
+              <option value="Excellent">Excellent</option>
+              <option value="Good" selected>Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Under Treatment">Under Treatment</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+          <button class="btn btn-primary" type="submit">Add Animal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  // Configuration
+  const BREEDS_PER_PAGE = 9; // 3x3 grid
+  let currentPage = 1;
+  let totalPages = 1;
+  let breedData = {};
+  
+  // Update time function
+  function updateLastUpdateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('lastUpdate').textContent = timeString;
+  }
+  
+  /* Build data array from template */
+  const animals = [
+    {%- if animals %}
+      {%- for a in animals %}
+        {
+          id: {{ a.id | default(None) | tojson }},
+          tag_number: {{ (a.tag_number | default('')) | string | tojson }},
+          breed: {{ (a.breed | default('')) | string | tojson }},
+          birth_date: {{ (a.birth_date | default('') ) | string | tojson }},
+          weight: {{ (a.weight | default(null)) | tojson }},
+          status: {{ (a.status | default('')) | string | tojson }},
+          health_status: {{ (a.health_status | default('')) | string | tojson }},
+          pen_number: {{ (a.pen_number | default('')) | string | tojson }}
+        }{{ "," if not loop.last else "" }}
+      {%- endfor %}
+    {%- else %}
+      /* empty */
+    {%- endif %}
+  ];
+
+  // Helper functions
+  function safeNum(v){ const n = Number(v); return Number.isFinite(n) ? n : 0; }
+  
+  // Analyze animal condition
+  function analyzeAnimalCondition(a){
+    const health = (a.health_status || 'Good').toString().toLowerCase();
+    const status = (a.status || 'Active').toString().toLowerCase();
+    
+    if (health.includes('critical')) return 'Critical';
+    if (health.includes('treatment') || health.includes('sick') || health.includes('ill')) {
+      return 'Under Treatment';
+    }
+    
+    if (status === 'inactive' || status === 'deceased' || status === 'sold') {
+      return 'Non-Active';
+    }
+    
+    if (health.includes('excellent') || health.includes('good')) {
+      return 'Healthy';
+    }
+    
+    return 'Healthy'; // Default
+  }
+
+  // Calculate typical weight (median of available weights)
+  function calculateTypicalWeight(weights) {
+    if (!weights.length) return 0;
+    const sorted = [...weights].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+  // Process animal data
+  function processAnimalData() {
+    breedData = {};
+    const healthStatusSummary = { Healthy: 0, 'Under Treatment': 0, 'Non-Active': 0, Critical: 0 };
+    let animalsWithWeight = 0;
+    
+    for (const a of animals){
+      const breed = (a.breed || 'Unknown').toString().trim() || 'Unknown';
+      
+      if (!breedData[breed]) {
+        breedData[breed] = {
+          count: 0,
+          weights: [],
+          conditions: { Healthy: 0, 'Under Treatment': 0, 'Non-Active': 0, Critical: 0 },
+          pens: new Set()
+        };
+      }
+      
+      breedData[breed].count++;
+      const weight = safeNum(a.weight);
+      if (weight > 0) {
+        breedData[breed].weights.push(weight);
+        animalsWithWeight++;
+      }
+      
+      const condition = analyzeAnimalCondition(a);
+      breedData[breed].conditions[condition] = (breedData[breed].conditions[condition] || 0) + 1;
+      healthStatusSummary[condition] = (healthStatusSummary[condition] || 0) + 1;
+      
+      if (a.pen_number) {
+        breedData[breed].pens.add(a.pen_number);
+      }
+    }
+    
+    // Calculate additional metrics for each breed
+    Object.keys(breedData).forEach(breed => {
+      const data = breedData[breed];
+      data.typicalWeight = calculateTypicalWeight(data.weights);
+      data.healthPercentage = data.count > 0 ? Math.round((data.conditions.Healthy / data.count) * 100) : 0;
+    });
+    
+    return {
+      healthStatusSummary,
+      animalsWithWeight,
+      totalAnimals: animals.length
+    };
+  }
+
+  // Update statistics
+  function updateStatistics(stats) {
+    const totalAnimals = stats.totalAnimals;
+    const healthyCount = stats.healthStatusSummary.Healthy || 0;
+    const treatmentCount = stats.healthStatusSummary['Under Treatment'] || 0;
+    const uniqueBreeds = Object.keys(breedData).length;
+    
+    // Update with animation
+    function animateValue(element, endValue) {
+      let start = 0;
+      const duration = 600;
+      const increment = endValue / (duration / 16);
+      const elementEl = document.getElementById(element);
+      
+      const timer = setInterval(() => {
+        start += increment;
+        if (start >= endValue) {
+          elementEl.textContent = endValue;
+          clearInterval(timer);
+        } else {
+          elementEl.textContent = Math.floor(start);
+        }
+      }, 16);
+    }
+    
+    animateValue('healthyCount', healthyCount);
+    animateValue('treatmentCount', treatmentCount);
+    animateValue('uniqueBreeds', uniqueBreeds);
+  }
+
+  // Render breed cards for current page
+  function renderBreedCards(page) {
+    const breedAnalysisArea = document.getElementById('breedAnalysisArea');
+    const breeds = Object.entries(breedData)
+      .sort((a, b) => b[1].count - a[1].count);
+    
+    totalPages = Math.ceil(breeds.length / BREEDS_PER_PAGE);
+    const startIdx = (page - 1) * BREEDS_PER_PAGE;
+    const endIdx = startIdx + BREEDS_PER_PAGE;
+    const pageBreeds = breeds.slice(startIdx, endIdx);
+    
+    if (pageBreeds.length === 0) {
+      breedAnalysisArea.innerHTML = `
+        <div class="col-12">
+          <div class="breed-card text-center p-4">
+            <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No breed data available</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    breedAnalysisArea.innerHTML = pageBreeds.map(([breed, data]) => {
+      const penCount = data.pens.size;
+      const penInfo = penCount > 0 ? `${penCount} pen${penCount > 1 ? 's' : ''}` : 'No pen';
+      
+      return `
+        <div class="breed-card">
+          <div class="breed-card-header">
+            <div class="breed-name">
+              ${breed.substring(0, 15)}${breed.length > 15 ? '...' : ''}
+              <span class="breed-count">${data.count}</span>
+            </div>
+            <div class="breed-subtitle">${penInfo}</div>
+          </div>
+          
+          <div class="breed-card-body">
+            <div class="health-grid">
+              <div class="health-item health-healthy">
+                <span class="health-value">${data.conditions.Healthy || 0}</span>
+                <span class="health-label">Healthy</span>
+              </div>
+              <div class="health-item health-treatment">
+                <span class="health-value">${data.conditions['Under Treatment'] || 0}</span>
+                <span class="health-label">Treatment</span>
+              </div>
+              <div class="health-item health-nonactive">
+                <span class="health-value">${data.conditions['Non-Active'] || 0}</span>
+                <span class="health-label">Non-Active</span>
+              </div>
+              <div class="health-item health-critical">
+                <span class="health-value">${data.conditions.Critical || 0}</span>
+                <span class="health-label">Critical</span>
+              </div>
+            </div>
+            
+            <div class="metrics-row">
+              <div class="metric">
+                <span class="metric-value">${data.typicalWeight > 0 ? data.typicalWeight.toFixed(0) + 'kg' : '—'}</span>
+                <span class="metric-label">Typical Weight</span>
+              </div>
+              <div class="metric">
+                <span class="metric-value">${data.healthPercentage}%</span>
+                <span class="metric-label">Health</span>
+              </div>
+            </div>
+            
+            <div class="health-bar-container">
+              <div class="health-bar-label">
+                <span>Health Status</span>
+                <span>${data.healthPercentage}%</span>
+              </div>
+              <div class="health-bar">
+                <div class="health-fill" style="width: ${data.healthPercentage}%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Update pagination controls
+    updatePaginationControls();
+  }
+
+  // Update pagination controls
+  function updatePaginationControls() {
+    const paginationControls = document.getElementById('paginationControls');
+    const pageInfo = document.getElementById('pageInfo');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    if (totalPages > 1) {
+      paginationControls.classList.remove('d-none');
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage === totalPages;
+      
+      prevBtn.style.opacity = currentPage === 1 ? '0.5' : '1';
+      nextBtn.style.opacity = currentPage === totalPages ? '0.5' : '1';
+    } else {
+      paginationControls.classList.add('d-none');
+    }
+  }
+
+  // Update health status summary
+  function updateHealthStatus(stats) {
+    const healthStatusEl = document.getElementById('healthStatus');
+    const total = stats.totalAnimals;
+    const healthyPct = total > 0 ? Math.round((stats.healthStatusSummary.Healthy / total) * 100) : 0;
+    const treatmentPct = total > 0 ? Math.round((stats.healthStatusSummary['Under Treatment'] / total) * 100) : 0;
+    const nonActivePct = total > 0 ? Math.round((stats.healthStatusSummary['Non-Active'] / total) * 100) : 0;
+    
+    healthStatusEl.innerHTML = `
+      <div class="mb-3">
+        <div class="d-flex justify-content-between mb-1">
+          <small>Healthy</small>
+          <small><strong>${stats.healthStatusSummary.Healthy}</strong> (${healthyPct}%)</small>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-success" style="width: ${healthyPct}%"></div>
+        </div>
+      </div>
+      
+      <div class="mb-3">
+        <div class="d-flex justify-content-between mb-1">
+          <small>Treatment</small>
+          <small><strong>${stats.healthStatusSummary['Under Treatment']}</strong> (${treatmentPct}%)</small>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-warning" style="width: ${treatmentPct}%"></div>
+        </div>
+      </div>
+      
+      <div class="mb-2">
+        <div class="d-flex justify-content-between mb-1">
+          <small>Non-Active</small>
+          <small><strong>${stats.healthStatusSummary['Non-Active']}</strong> (${nonActivePct}%)</small>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-secondary" style="width: ${nonActivePct}%"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Update insights
+  function updateInsights(stats) {
+    const insightsEl = document.getElementById('insights');
+    const breedsWithWeight = Object.values(breedData).filter(b => b.weights.length > 0).length;
+    const uniqueBreeds = Object.keys(breedData).length;
+    
+    // Find most common breed
+    const mostCommonBreed = Object.entries(breedData)
+      .sort((a, b) => b[1].count - a[1].count)[0];
+    
+    insightsEl.innerHTML = `
+      <div class="mb-3">
+        <div class="d-flex justify-content-between mb-1">
+          <small>Animals with weight data</small>
+          <small><strong>${stats.animalsWithWeight}/${stats.totalAnimals}</strong></small>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-info" style="width: ${Math.round((stats.animalsWithWeight / stats.totalAnimals) * 100)}%"></div>
+        </div>
+      </div>
+      
+      <div class="mb-3">
+        <div class="d-flex justify-content-between mb-1">
+          <small>Most common breed</small>
+          <small><strong>${mostCommonBreed ? mostCommonBreed[0].substring(0, 12) + (mostCommonBreed[0].length > 12 ? '...' : '') : 'None'}</strong></small>
+        </div>
+        <small class="text-muted d-block">${mostCommonBreed ? mostCommonBreed[1].count : 0} animals</small>
+      </div>
+      
+      <div>
+        <div class="d-flex justify-content-between mb-1">
+          <small>Breeds with complete data</small>
+          <small><strong>${breedsWithWeight}/${uniqueBreeds}</strong></small>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-primary" style="width: ${Math.round((breedsWithWeight / uniqueBreeds) * 100)}%"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Initialize the application
+  function init() {
+    // Process data
+    const stats = processAnimalData();
+    
+    // Update statistics
+    updateStatistics(stats);
+    
+    // Render first page of breed cards
+    renderBreedCards(currentPage);
+    
+    // Update health status and insights
+    updateHealthStatus(stats);
+    updateInsights(stats);
+    
+    // Initialize update time
+    updateLastUpdateTime();
+    
+    // Setup pagination event listeners
+    document.getElementById('prevPage')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderBreedCards(currentPage);
+      }
+    });
+    
+    document.getElementById('nextPage')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderBreedCards(currentPage);
+      }
+    });
+    
+    // CSV export
+    const exportBtn = document.getElementById('exportBreedSummary');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function() {
+        const hdr = ['Breed', 'Count', 'Healthy', 'Under Treatment', 'Non-Active', 'Critical', 'Typical Weight', 'Health %', 'Pens'];
+        let csv = hdr.join(',') + '\n';
+        const breeds = Object.entries(breedData)
+          .sort((a, b) => b[1].count - a[1].count);
+        
+        for (const [breed, data] of breeds) {
+          const pens = Array.from(data.pens).join('; ');
+          csv += `"${breed.replace(/"/g, '""')}",${data.count},${data.conditions.Healthy || 0},${data.conditions['Under Treatment'] || 0},${data.conditions['Non-Active'] || 0},${data.conditions.Critical || 0},${data.typicalWeight.toFixed(2)},"${data.healthPercentage}%","${pens}"\n`;
+        }
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const fname = `breed_summary_${new Date().toISOString().slice(0, 10)}.csv`;
+        if (navigator.msSaveBlob) {
+          navigator.msSaveBlob(blob, fname);
+        } else {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = fname;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      });
+    }
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Auto-refresh time every minute
+  setInterval(updateLastUpdateTime, 60000);
+
+})();
+</script>
+{% endblock %}

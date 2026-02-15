@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Edit Financial{% endblock %}
+{% block page_title %}Edit Transaction{% endblock %}
+{% block page_subtitle %}Update transaction{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <h4>Edit Transaction F-{{ record.id }}</h4>
+  <form method="POST" action="{{ url_for('edit_financial', record_id=record.id) }}">
+    <div class="mb-3"><label class="form-label">Type</label><input name="transaction_type" class="form-control" value="{{ record.transaction_type }}"></div>
+    <div class="mb-3"><label class="form-label">Amount</label><input name="amount" type="number" step="0.01" class="form-control" value="{{ record.amount }}"></div>
+    <div class="mb-3"><label class="form-label">Category</label><input name="category" class="form-control" value="{{ record.category }}"></div>
+    <div class="mb-3"><label class="form-label">Description</label><input name="description" class="form-control" value="{{ record.description }}"></div>
+    <div class="mb-3"><label class="form-label">Transaction Date</label><input name="transaction_date" type="date" class="form-control" value="{{ record.transaction_date }}"></div>
+    <div class="mb-3"><label class="form-label">Reference</label><input name="reference" class="form-control" value="{{ record.reference }}"></div>
+
+    <div class="d-flex justify-content-end">
+      <a class="btn btn-secondary me-2" href="{{ url_for('financial') }}">Cancel</a>
+      <button class="btn btn-primary" type="submit">Save</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

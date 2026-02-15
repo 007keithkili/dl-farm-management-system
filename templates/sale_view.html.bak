@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Sale Detail{% endblock %}
+{% block page_title %}Sale Detail{% endblock %}
+{% block page_subtitle %}Sale information{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Sale S-{{ sale.id }}</h4>
+    <div>
+      <a class="btn btn-warning" href="{{ url_for('edit_sale', sale_id=sale.id) }}">Edit</a>
+      <a class="btn btn-secondary" href="{{ url_for('sales') }}">Back</a>
+    </div>
+  </div>
+
+  <dl class="row">
+    <dt class="col-sm-3">Customer</dt><dd class="col-sm-9">{{ sale.customer_name }}</dd>
+    <dt class="col-sm-3">Product</dt><dd class="col-sm-9">{{ sale.product }}</dd>
+    <dt class="col-sm-3">Quantity</dt><dd class="col-sm-9">{{ sale.quantity }}</dd>
+    <dt class="col-sm-3">Price per unit</dt><dd class="col-sm-9">{{ sale.price_per_unit }}</dd>
+    <dt class="col-sm-3">Total</dt><dd class="col-sm-9">{{ sale.total_amount }}</dd>
+    <dt class="col-sm-3">Sale Date</dt><dd class="col-sm-9">{{ sale.sale_date }}</dd>
+    <dt class="col-sm-3">Payment Status</dt><dd class="col-sm-9">{{ sale.payment_status }}</dd>
+    <dt class="col-sm-3">Created At</dt><dd class="col-sm-9">{{ sale.created_at }}</dd>
+  </dl>
+</div>
+{% endblock %}

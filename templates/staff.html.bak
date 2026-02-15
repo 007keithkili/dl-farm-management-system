@@ -5,69 +5,483 @@
 {% block page_subtitle %}Manage farm staff and assignments{% endblock %}
 
 {% block content %}
+<!-- Welcome & Overview Section -->
+<div class="content-card mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h4 class="mb-3"><i class="fas fa-users text-primary me-2"></i>Farm Staff Management System</h4>
+            <p class="text-muted mb-3">
+                This system manages all farm staff members, their assignments, contact information, and employment status. 
+                Track staff positions, departments, availability, and current tasks.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                    <i class="fas fa-user-check me-1"></i>Staff Directory
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                    <i class="fas fa-tasks me-1"></i>Task Management
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                    <i class="fas fa-user-clock me-1"></i>Leave Management
+                </span>
+                <span class="badge bg-info bg-opacity-10 text-info border border-info">
+                    <i class="fas fa-chart-pie me-1"></i>Department Analytics
+                </span>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="card border-primary">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-user-plus fa-2x text-primary mb-2"></i>
+                    <h6 class="mb-1">Quick Actions</h6>
+                    <small class="text-muted d-block mb-2">Add new staff or view department analytics</small>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                        <i class="fas fa-plus me-1"></i>Add Staff
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Statistics Dashboard -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-primary bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Staff</h6>
+                        <h2 class="mb-0">{{ total_staff }}</h2>
+                    </div>
+                    <i class="fas fa-users fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">All staff members</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-success bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Active Today</h6>
+                        <h2 class="mb-0">{{ active_today }}</h2>
+                    </div>
+                    <i class="fas fa-user-check fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Currently working</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-warning bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">On Leave</h6>
+                        <h2 class="mb-0">{{ on_leave }}</h2>
+                    </div>
+                    <i class="fas fa-user-clock fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Currently unavailable</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-info bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Active Tasks</h6>
+                        <h2 class="mb-0">{{ active_tasks }}</h2>
+                    </div>
+                    <i class="fas fa-tasks fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Current assignments</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Department & Status Analytics -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <!-- Department Distribution -->
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-building text-primary me-2"></i> Department Distribution</h5>
+                <small class="text-muted">Staff by department</small>
+            </div>
+            {% if staff_members %}
+                {% set department_counts = {} %}
+                {% for staff in staff_members %}
+                    {% set dept = staff.department|default('Unassigned') %}
+                    {% if dept in department_counts %}
+                        {% set _ = department_counts.update({dept: department_counts[dept] + 1}) %}
+                    {% else %}
+                        {% set _ = department_counts.update({dept: 1}) %}
+                    {% endif %}
+                {% endfor %}
+                
+                <div class="row">
+                    {% for dept, count in department_counts.items()|sort(attribute='1', reverse=True) %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-start border-4 
+                                {% if dept == 'management' %}border-primary
+                                {% elif dept == 'medical' %}border-danger
+                                {% elif dept == 'nutrition' %}border-success
+                                {% elif dept == 'breeding' %}border-warning
+                                {% else %}border-secondary{% endif %} h-100">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1 text-truncate" title="{{ dept }}">
+                                                {{ dept|capitalize }}
+                                            </h6>
+                                            <small class="text-muted">{{ count }} staff member{% if count > 1 %}s{% endif %}</small>
+                                        </div>
+                                        <span class="badge 
+                                            {% if dept == 'management' %}bg-primary
+                                            {% elif dept == 'medical' %}bg-danger
+                                            {% elif dept == 'nutrition' %}bg-success
+                                            {% elif dept == 'breeding' %}bg-warning
+                                            {% else %}bg-secondary{% endif %} rounded-pill">
+                                            {{ ((count / total_staff) * 100)|int if total_staff > 0 else 0 }}%
+                                        </span>
+                                    </div>
+                                    <!-- Progress Bar -->
+                                    <div class="progress mt-2" style="height: 6px;">
+                                        <div class="progress-bar 
+                                            {% if dept == 'management' %}bg-primary
+                                            {% elif dept == 'medical' %}bg-danger
+                                            {% elif dept == 'nutrition' %}bg-success
+                                            {% elif dept == 'breeding' %}bg-warning
+                                            {% else %}bg-secondary{% endif %}" 
+                                            role="progressbar" 
+                                            style="width: {{ ((count / total_staff) * 100) if total_staff > 0 else 0 }}%;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-building fa-2x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No department data available</p>
+                    <small class="text-muted">Add staff members to see department distribution</small>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Status Overview & Quick Guide -->
+        <div class="content-card h-100">
+            <h5 class="mb-3"><i class="fas fa-chart-pie text-info me-2"></i> Status Overview</h5>
+            {% if staff_members %}
+                {% set status_counts = {} %}
+                {% for staff in staff_members %}
+                    {% set status = (staff.status or 'active').lower() %}
+                    {% if status in status_counts %}
+                        {% set _ = status_counts.update({status: status_counts[status] + 1}) %}
+                    {% else %}
+                        {% set _ = status_counts.update({status: 1}) %}
+                    {% endif %}
+                {% endfor %}
+                
+                <div class="mb-4">
+                    {% for status, count in status_counts.items() %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="small">
+                                    <span class="badge 
+                                        {% if status == 'active' %}bg-success
+                                        {% elif status in ['on leave', 'leave'] %}bg-warning text-dark
+                                        {% elif status in ['inactive', 'suspended'] %}bg-secondary
+                                        {% else %}bg-info{% endif %} me-2">
+                                        {{ status|title }}
+                                    </span>
+                                    {{ count }}
+                                </span>
+                                <small class="text-muted">{{ ((count / total_staff) * 100)|int if total_staff > 0 else 0 }}%</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar 
+                                    {% if status == 'active' %}bg-success
+                                    {% elif status in ['on leave', 'leave'] %}bg-warning
+                                    {% elif status in ['inactive', 'suspended'] %}bg-secondary
+                                    {% else %}bg-info{% endif %}" 
+                                    style="width: {{ ((count / total_staff) * 100) if total_staff > 0 else 0 }}%;">
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-chart-pie fa-2x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No status data</p>
+                </div>
+            {% endif %}
+            
+            <!-- Quick Guide -->
+            <div class="mt-4 pt-3 border-top">
+                <h6 class="text-muted mb-2"><i class="fas fa-info-circle me-2"></i>Status Guide</h6>
+                <div class="d-flex flex-column gap-1">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-success me-2" style="width: 12px; height: 12px;"></span>
+                        <small class="text-muted">Active - Currently working</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-warning me-2" style="width: 12px; height: 12px;"></span>
+                        <small class="text-muted">On Leave - Temporary absence</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-secondary me-2" style="width: 12px; height: 12px;"></span>
+                        <small class="text-muted">Inactive - Not currently employed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Additions & Contact Info -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-user-plus text-primary me-2"></i> Recent Additions</h5>
+                <small class="text-muted">Last 5 staff added</small>
+            </div>
+            {% if staff_members %}
+                {# take the most recent 5 by id safely using sequence slicing #}
+                {% set recent_staff = (staff_members|sort(attribute='id', reverse=True))[:5] %}
+                <div class="list-group list-group-flush">
+                    {% for staff in recent_staff %}
+                        <div class="list-group-item border-0 px-0 py-2">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fas fa-user text-primary me-2"></i>
+                                        <strong>{{ staff.first_name }} {{ staff.last_name }}</strong>
+                                        <span class="badge ms-2 
+                                            {% if (staff.status or '').lower() == 'active' %}bg-success
+                                            {% elif (staff.status or '').lower() in ['on leave', 'leave'] %}bg-warning text-dark
+                                            {% elif (staff.status or '').lower() in ['inactive', 'suspended'] %}bg-secondary
+                                            {% else %}bg-info{% endif %}">
+                                            {{ staff.status or 'Active' }}
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">{{ staff.position }} • {{ staff.department|default('No Dept') }}</small>
+                                </div>
+                                <small class="text-muted">ID: STF-{{ staff.id }}</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-user-plus fa-2x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No staff members added yet</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-phone text-success me-2"></i> Contact Availability</h5>
+                <small class="text-muted">Quick contact reference</small>
+            </div>
+            {% if staff_members %}
+                {% set active_staff = [] %}
+                {% for staff in staff_members %}
+                    {% if (staff.status or '').lower() == 'active' %}
+                        {% set _ = active_staff.append(staff) %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if active_staff %}
+                    {# take the first 5 active staff for contact preview #}
+                    {% set contact_staff = active_staff[:5] %}
+                    <div class="list-group list-group-flush">
+                        {% for staff in contact_staff %}
+                            <div class="list-group-item border-0 px-0 py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="d-flex align-items-center mb-1">
+                                            <i class="fas fa-user-circle text-primary me-2"></i>
+                                            <strong>{{ staff.first_name }} {{ staff.last_name|first }}.</strong>
+                                        </div>
+                                        <small class="text-muted">{{ staff.position }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        {% if staff.phone %}
+                                        <div class="small text-success">{{ staff.phone }}</div>
+                                        <small class="text-muted">Phone</small>
+                                        {% else %}
+                                        <span class="text-muted small">No phone</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-phone fa-2x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No active staff with contact info</p>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-phone fa-2x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No staff members found</p>
+                </div>
+            {% endif %}
+            
+            <div class="mt-3 pt-3 border-top">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <i class="fas fa-mobile-alt fa-lg text-primary mb-2"></i>
+                            <h6 class="mb-1">{{ staff_members|selectattr('phone')|list|length if staff_members else 0 }}</h6>
+                            <small class="text-muted">With Phone</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <i class="fas fa-envelope fa-lg text-success mb-2"></i>
+                            <h6 class="mb-1">{{ staff_members|selectattr('email')|list|length if staff_members else 0 }}</h6>
+                            <small class="text-muted">With Email</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Staff Directory -->
 <div class="content-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4>Staff Directory</h4>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStaffModal">
-            <i class="fas fa-user-plus"></i> Add Staff Member
-        </button>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="stat-card" style="border-top-color: #3498db;">
-                <i class="fas fa-users"></i>
-                <h3>{{ total_staff }}</h3>
-                <p>Total Staff</p>
-            </div>
+        <div>
+            <h4 class="mb-0">Staff Directory</h4>
+            <p class="text-muted mb-0">Complete list of all farm staff members. Click to view details.</p>
         </div>
-        <div class="col-md-3">
-            <div class="stat-card" style="border-top-color: #2ecc71;">
-                <i class="fas fa-user-check"></i>
-                <h3>{{ active_today }}</h3>
-                <p>Active Today</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card" style="border-top-color: #f39c12;">
-                <i class="fas fa-user-clock"></i>
-                <h3>{{ on_leave }}</h3>
-                <p>On Leave</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card" style="border-top-color: #9b59b6;">
-                <i class="fas fa-tasks"></i>
-                <h3>{{ active_tasks }}</h3>
-                <p>Active Tasks</p>
-            </div>
+        <!-- Added Print button next to Add Staff Member; rest of UI unchanged -->
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                <i class="fas fa-user-plus me-2"></i> Add Staff Member
+            </button>
+            <button id="printStaff" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-print me-1"></i> Print
+            </button>
         </div>
     </div>
 
-    <div class="table-responsive">
+    <!-- Quick Filters and Search -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <span class="me-3 text-muted small">Filter by:</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary active" id="filterAll">All Staff</button>
+                    <button type="button" class="btn btn-outline-primary" id="filterActive">Active</button>
+                    <button type="button" class="btn btn-outline-primary" id="filterLeave">On Leave</button>
+                    <button type="button" class="btn btn-outline-primary" id="filterDepartment">By Department</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search staff..." id="staffSearch">
+                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Table -->
+    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
         <table class="table table-hover">
-            <thead class="table-dark">
+            <thead class="table-primary sticky-top">
                 <tr>
-                    <th>Staff ID</th>
+                    <th width="100">Staff ID</th>
                     <th>Name</th>
-                    <th>ID No</th>         <!-- NEW: national/employee ID column -->
+                    <th>ID No</th>
                     <th>Position</th>
                     <th>Department</th>
                     <th>Contact</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th width="120">Status</th>
+                    <th width="120">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="staffTable">
                 {% if staff_members %}
                     {% for staff in staff_members %}
-                    <tr>
-                        <td>STF-{{ staff.id }}</td>
-                        <td>{{ staff.first_name }} {{ staff.last_name }}</td>
-                        <td>{{ staff.id_number or '' }}</td>   <!-- NEW cell -->
-                        <td>{{ staff.position }}</td>
-                        <td>{{ staff.department if staff.department else 'N/A' }}</td>
-                        <td>{{ staff.phone }}</td>
+                    <tr class="staff-row" 
+                        data-status="{{ (staff.status or '').lower() }}" 
+                        data-department="{{ staff.department|default('')|lower }}"
+                        data-name="{{ staff.first_name }} {{ staff.last_name }}">
+                        <td>
+                            <span class="badge bg-secondary">STF-{{ staff.id }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-user text-primary me-2"></i>
+                                <div>
+                                    <strong>{{ staff.first_name }} {{ staff.last_name }}</strong>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if staff.id_number %}
+                            <code>{{ staff.id_number }}</code>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="fw-semibold">{{ staff.position }}</span>
+                        </td>
+                        <td>
+                            {% if staff.department %}
+                            <span class="badge 
+                                {% if staff.department == 'management' %}bg-primary
+                                {% elif staff.department == 'medical' %}bg-danger
+                                {% elif staff.department == 'nutrition' %}bg-success
+                                {% elif staff.department == 'breeding' %}bg-warning
+                                {% else %}bg-info{% endif %} bg-opacity-10 text-dark">
+                                {{ staff.department|capitalize }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if staff.phone %}
+                            <div class="small">
+                                <i class="fas fa-phone text-success me-1"></i>
+                                {{ staff.phone }}
+                            </div>
+                            {% if staff.email %}
+                            <div class="small text-truncate" style="max-width: 150px;" title="{{ staff.email }}">
+                                <i class="fas fa-envelope text-primary me-1"></i>
+                                {{ staff.email }}
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% set s = (staff.status or '').lower() %}
                             {% if s == 'active' %}
@@ -81,110 +495,409 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{{ url_for('view_staff', staff_id=staff.id) }}" class="btn btn-sm btn-info" title="View">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <a href="{{ url_for('edit_staff', staff_id=staff.id) }}" class="btn btn-sm btn-warning" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </a>
+                            <div class="d-flex gap-1 align-items-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('view_staff', staff_id=staff.id) }}" 
+                                       class="btn btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_staff', staff_id=staff.id) }}" 
+                                       class="btn btn-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+
+                                {# Delete button opens modal #}
+                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#confirmDeleteModal"
+                                        data-id="{{ staff.id }}"
+                                        data-name="{{ staff.first_name }} {{ staff.last_name }}"
+                                        {% if current_user.is_authenticated and current_user.id == staff.id %}disabled{% endif %}>
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="8" class="text-center">No staff members found.</td>  {# updated colspan to match columns #}
+                        <td colspan="8">
+                            <div class="text-center py-5">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No staff members found</h5>
+                                <p class="text-muted">Add staff members to manage your farm team</p>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                                    <i class="fas fa-user-plus me-2"></i> Add First Staff Member
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
+
+    {% if staff_members %}
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <small class="text-muted">Showing {{ staff_members|length }} staff member{% if staff_members|length != 1 %}s{% endif %} • Click rows to view details</small>
+        </div>
+        <div class="col-md-6 text-end">
+            <small class="text-muted">
+                <i class="fas fa-circle text-success small me-1"></i> Active
+                <i class="fas fa-circle text-warning small mx-2 me-1"></i> On Leave
+                <i class="fas fa-circle text-secondary small mx-2 me-1"></i> Inactive
+            </small>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
-<!-- Add Staff Modal -->
+<!-- Confirm Delete Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="POST" id="deleteStaffForm" class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>You're about to permanently delete staff member:</p>
+        <p class="fw-semibold mb-1" id="deleteStaffName">—</p>
+        <p class="text-muted small">This action cannot be undone. A deletion record (who deleted it and when) will be saved.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Staff Modal (same fields as provided) -->
 <div class="modal fade" id="addStaffModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Staff Member</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add New Staff Member</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('add_staff') }}">
                 <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Add new staff members to manage farm operations. Fill required fields (*) for essential information.</small>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">First Name *</label>
-                                <input type="text" class="form-control" name="first_name" required>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    <input type="text" class="form-control" name="first_name" required placeholder="John">
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Last Name *</label>
-                                <input type="text" class="form-control" name="last_name" required>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    <input type="text" class="form-control" name="last_name" required placeholder="Doe">
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Position *</label>
-                                <input type="text" class="form-control" name="position" required>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-briefcase"></i></span>
+                                    <input type="text" class="form-control" name="position" required placeholder="Farm Manager">
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Department *</label>
-                                <select class="form-select" name="department" required>
-                                    <option value="">Select Department</option>
-                                    <option value="management">Management</option>
-                                    <option value="medical">Medical</option>
-                                    <option value="nutrition">Nutrition</option>
-                                    <option value="breeding">Breeding</option>
-                                    <option value="sales">Sales</option>
-                                    <option value="maintenance">Maintenance</option>
-                                </select>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                    <select class="form-select" name="department" required>
+                                        <option value="">Select Department</option>
+                                        <option value="management">Management</option>
+                                        <option value="medical">Medical</option>
+                                        <option value="nutrition">Nutrition</option>
+                                        <option value="breeding">Breeding</option>
+                                        <option value="sales">Sales</option>
+                                        <option value="maintenance">Maintenance</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Email Address</label>
-                                <input type="email" class="form-control" name="email">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                    <input type="email" class="form-control" name="email" placeholder="john@example.com">
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Phone Number *</label>
-                                <input type="tel" class="form-control" name="phone" required>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                    <input type="tel" class="form-control" name="phone" required placeholder="+1234567890">
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label">Address</label>
-                        <textarea class="form-control" name="address" rows="2"></textarea>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-home"></i></span>
+                            <textarea class="form-control" name="address" rows="2" placeholder="Street, City, Country"></textarea>
+                        </div>
                     </div>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Date of Birth</label>
-                                <input type="date" class="form-control" name="dob">
+                                <label class="form-label">ID Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                    <input type="text" class="form-control" name="id_number" placeholder="National/Employee ID">
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
+                                <label class="form-label">Date of Birth</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-birthday-cake"></i></span>
+                                    <input type="date" class="form-control" name="dob">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 <label class="form-label">Date Employed</label>
-                                <input type="date" class="form-control" name="date_employed">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                    <input type="date" class="form-control" name="date_employed">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-circle"></i></span>
+                                    <select class="form-select" name="status">
+                                        <option value="active">Active</option>
+                                        <option value="on leave">On Leave</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Staff Member</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Add Staff Member
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<style>
+    .content-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+    }
+    .staff-row:hover {
+        background-color: rgba(13, 110, 253, 0.05) !important;
+        cursor: pointer;
+    }
+    .sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    .border-start {
+        border-left-width: 4px !important;
+    }
+    .list-group-item {
+        transition: background-color 0.2s;
+    }
+    .list-group-item:hover {
+        background-color: rgba(0,0,0,.02);
+    }
+    .progress {
+        background-color: rgba(0,0,0,0.05);
+    }
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        border-top: 4px solid;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* Print-specific rules: keep main content, hide interactive UI and modals */
+    @media print {
+      /* hide everything by default */
+      body * { visibility: hidden; }
+      /* show only content-cards (main areas) and their children */
+      .content-card, .content-card * { visibility: visible; }
+      /* show header/title area */
+      h4, h5, h6 { visibility: visible; }
+      /* ensure the printed content sits at top */
+      .content-card { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; }
+      /* hide controls that shouldn't print */
+      .btn, .btn-group, .input-group, .modal, .btn-close, .btn-outline-secondary, button[data-bs-toggle], .fa-trash, .fa-edit, .fa-eye { display: none !important; }
+      /* make tables printable */
+      table { page-break-inside: auto; }
+      tr    { page-break-inside: avoid; page-break-after: auto; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+    }
+</style>
+
+<script>
+    // Confirm Delete Modal wiring (sets the form action and name)
+    (function() {
+        var confirmDeleteModal = document.getElementById('confirmDeleteModal');
+        if (!confirmDeleteModal) return;
+
+        confirmDeleteModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            if (!button) return;
+
+            var staffId = button.getAttribute('data-id');
+            var staffName = button.getAttribute('data-name') || '—';
+
+            var nameEl = document.getElementById('deleteStaffName');
+            if (nameEl) nameEl.textContent = staffName + ' (STF-' + staffId + ')';
+
+            var form = document.getElementById('deleteStaffForm');
+            if (form) {
+                form.action = '/delete_staff/' + staffId;
+            }
+        });
+    })();
+
+    // Filter + search + behaviors copied from earlier script (keeps UI)
+    function setActiveFilter(button) {
+        document.querySelectorAll('#filterAll, #filterActive, #filterLeave, #filterDepartment').forEach(btn => {
+            btn.classList.remove('active');
+            btn.classList.add('btn-outline-primary');
+        });
+        button.classList.add('active');
+        button.classList.remove('btn-outline-primary');
+    }
+    function showAllRows() {
+        const rows = document.querySelectorAll('.staff-row');
+        rows.forEach(row => row.style.display = '');
+    }
+    document.getElementById('filterAll')?.addEventListener('click', function(){ setActiveFilter(this); showAllRows(); });
+    document.getElementById('filterActive')?.addEventListener('click', function(){
+        setActiveFilter(this);
+        document.querySelectorAll('.staff-row').forEach(row => row.style.display = (row.getAttribute('data-status') === 'active') ? '' : 'none');
+    });
+    document.getElementById('filterLeave')?.addEventListener('click', function(){
+        setActiveFilter(this);
+        document.querySelectorAll('.staff-row').forEach(row => {
+            const s = row.getAttribute('data-status');
+            row.style.display = (s === 'on leave' || s === 'leave') ? '' : 'none';
+        });
+    });
+    document.getElementById('filterDepartment')?.addEventListener('click', function(){ setActiveFilter(this); showAllRows(); });
+
+    const staffSearch = document.getElementById('staffSearch');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    if (staffSearch) {
+        staffSearch.addEventListener('input', function(e){
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.staff-row').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const name = (row.getAttribute('data-name') || '').toLowerCase();
+                row.style.display = (text.includes(term) || name.includes(term)) ? '' : 'none';
+            });
+        });
+    }
+    if (clearSearchBtn) clearSearchBtn.addEventListener('click', function(){ staffSearch.value=''; showAllRows(); });
+
+    // row click -> view
+    document.querySelectorAll('.staff-row').forEach(row => {
+      row.addEventListener('click', function(e){
+        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('a') || e.target.closest('button')) return;
+        const viewBtn = this.querySelector('a[href*="view_staff"]');
+        if (viewBtn) viewBtn.click();
+      });
+    });
+
+    // card hover effects
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('mouseenter', function() { this.style.transform='translateY(-2px)'; this.style.transition='transform .2s ease'; });
+      card.addEventListener('mouseleave', function() { this.style.transform='translateY(0)'; });
+    });
+
+    // init default dates (addStaff modal)
+    document.addEventListener('DOMContentLoaded', function(){
+      const today = new Date().toISOString().split('T')[0];
+      const dateEmployedInput = document.querySelector('input[name="date_employed"]');
+      if (dateEmployedInput && !dateEmployedInput.value) dateEmployedInput.value = today;
+
+      const thirtyYearsAgo = new Date(); thirtyYearsAgo.setFullYear(thirtyYearsAgo.getFullYear() - 30);
+      const dobDefault = thirtyYearsAgo.toISOString().split('T')[0];
+      const dobInput = document.querySelector('input[name="dob"]');
+      if (dobInput && !dobInput.value) dobInput.value = dobDefault;
+    });
+
+    // PRINT button handler: close any open Bootstrap modals (so they don't appear in print) and call print
+    (function() {
+      const printBtn = document.getElementById('printStaff');
+      if (!printBtn) return;
+      printBtn.addEventListener('click', function() {
+        try {
+          // hide all open Bootstrap modals if bootstrap available
+          document.querySelectorAll('.modal.show').forEach(m => {
+            const instance = bootstrap.Modal.getInstance(m);
+            if (instance) instance.hide();
+            else {
+              // fallback: remove 'show' class and aria attributes
+              m.classList.remove('show');
+              m.style.display = 'none';
+              m.setAttribute('aria-hidden', 'true');
+            }
+          });
+        } catch (err) {
+          // ignore if bootstrap not available
+        }
+        // give browser a tick to hide modals then print
+        setTimeout(() => { window.print(); }, 120);
+      });
+    })();
+</script>
 {% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{# Defensive defaults #}
+{% if item is not defined %}{% set item = None %}{% endif %}
+{% if txs is not defined %}{% set txs = [] %}{% endif %}
+
+{% block title %}View Item{% endblock %}
+{% block page_title %}Item Details{% endblock %}
+{% block page_subtitle %}View item and check history{% endblock %}
+
+{% block extra_css %}
+<style>
+.content-card{padding:20px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.04);}
+.detail-row{display:flex;gap:16px;flex-wrap:wrap;}
+.detail-card{flex:1;min-width:220px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.03);}
+.tx-list{max-height:300px;overflow:auto;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 style="margin:0;">{{ item.item_name if item else '—' }}</h4>
+      <p class="text-muted mb-0">SKU: {{ item.sku or '—' }} • Location: {{ item.location or '—' }}</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <a class="btn btn-outline-secondary" href="{{ url_for('inventory_list') }}">Back</a>
+      {% if item %}
+        <a class="btn btn-outline-warning" href="{{ url_for('edit_inventory', item_id=item.id) }}">Edit</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-row mb-3">
+    <div class="detail-card">
+      <div class="text-muted">On hand</div>
+      <div style="font-weight:800; font-size:1.6rem;">{{ item.quantity_on_hand or 0 }}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="text-muted">Notes</div>
+      <div>{{ item.notes or '—' }}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="text-muted">Added</div>
+      <div>{{ item.created_at or '—' }}</div>
+      <div style="margin-top:8px;"><small class="text-muted">Last updated: {{ item.updated_at if item and (item.updated_at is defined) else '—' }}</small></div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:8px; margin-bottom:12px;">
+    {% if item %}
+      <button class="btn btn-success" onclick="openTxModal({{ item.id }}, 'in')"><i class="fas fa-plus me-1"></i> Check In</button>
+      <button class="btn btn-danger" onclick="openTxModal({{ item.id }}, 'out')"><i class="fas fa-minus me-1"></i> Check Out</button>
+      <form id="delete-item-{{ item.id }}" method="POST" action="{{ url_for('delete_inventory', item_id=item.id) }}" style="display:inline;">
+        <button type="button" class="btn btn-outline-secondary" onclick="confirmAction('Delete item {{ item.item_name }}?', function(ok){ if(ok) document.getElementById('delete-item-{{ item.id }}').submit(); })">
+          <i class="fas fa-trash me-1"></i>Delete
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Recent Transactions</div>
+    <div class="card-body tx-list">
+      {% if txs %}
+        <table class="table table-sm">
+          <thead><tr><th>Date</th><th>Type</th><th>Qty</th><th>By</th><th>Reference</th><th>Notes</th></tr></thead>
+          <tbody>
+            {% for t in txs %}
+              <tr>
+                <td>{{ t.tx_date or '—' }}</td>
+                <td>{{ t.tx_type|upper }}</td>
+                <td>{{ t.quantity }}</td>
+                <td>{{ t.performed_by or '—' }}</td>
+                <td>{{ t.reference or '—' }}</td>
+                <td style="max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ t.notes or '' }}">{{ t.notes or '' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="text-center text-muted p-3">No transactions recorded for this item.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  function confirmAction(msg, cb) { try { cb(window.confirm(msg)); } catch(e) { cb(false); } }
+  window.confirmAction = confirmAction;
+
+  window.openTxModal = function(itemId, txType) {
+    const name = "{{ item.item_name|escape if item else '' }}";
+    const qtyStr = prompt((txType === 'in' ? 'Check IN' : 'Check OUT') + ' — Enter quantity for "' + name + '":', '1');
+    if (!qtyStr) return;
+    const qty = parseInt(qtyStr, 10);
+    if (!qty || qty <= 0) { alert('Please enter a valid quantity'); return; }
+    const ref = prompt('Reference (optional):', '') || '';
+    const notes = prompt('Notes (optional):', '') || '';
+
+    fetch(`/inventory/${itemId}/tx`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Accept':'application/json'},
+      body: JSON.stringify({tx_type: txType, quantity: qty, reference: ref, notes: notes})
+    }).then(r => r.json().catch(()=>({}))).then(j=>{
+      if (j && j.ok) location.reload(); else alert('Transaction failed');
+    }).catch(e=>{console.error(e); alert('Request failed');});
+  };
+})();
+</script>
+{% endblock %}

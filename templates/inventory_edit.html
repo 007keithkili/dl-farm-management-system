@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Edit Inventory{% endblock %}
+
+{% block page_title %}Edit Item{% endblock %}
+{% block page_subtitle %}Update inventory item details{% endblock %}
+
+{% block extra_css %}{% endblock %}
+
+{% block content %}
+<div class="card p-3">
+  <h5>Edit Inventory Item</h5>
+
+  {% if not item %}
+    <div class="alert alert-warning">No item provided to edit.</div>
+  {% else %}
+    {# compute id and fallbacks robustly #}
+    {% if item is mapping %}
+      {% set item_id = item.get('id') %}
+      {% set name_val = (item.get('item_name') or item.get('name') or '') %}
+      {% set qty_val = (item.get('quantity_on_hand') or item.get('quantity') or 0) %}
+      {% set unit_val = (item.get('unit') or '') %}
+      {% set notes_val = (item.get('notes') or '') %}
+    {% else %}
+      {% set item_id = item.id %}
+      {% set name_val = (item.item_name or item.name or '') %}
+      {% set qty_val = (item.quantity_on_hand or item.quantity or 0) %}
+      {% set unit_val = (item.unit or '') %}
+      {% set notes_val = (item.notes or '') %}
+    {% endif %}
+
+    <form method="post" action="{{ url_for('edit_inventory', item_id=item_id) }}">
+      <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input name="item_name" class="form-control" value="{{ name_val }}" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Quantity</label>
+        <input name="quantity" type="number" class="form-control" value="{{ qty_val }}" min="0">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Unit</label>
+        <input name="unit" class="form-control" value="{{ unit_val }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="3">{{ notes_val }}</textarea>
+      </div>
+
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn btn-secondary"
+         href="{% if endpoint_exists is defined and endpoint_exists('inventory_list') %}{{ url_for('inventory_list') }}{% else %}{{ url_for('dashboard') }}{% endif %}">
+        Cancel
+      </a>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

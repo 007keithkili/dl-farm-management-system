@@ -1,0 +1,699 @@
+{% extends "base.html" %}
+{% block title %}Feed Management{% endblock %}
+{% block page_title %}Feed Management{% endblock %}
+{% block page_subtitle %}Feed records and schedules{% endblock %}
+
+{% block content %}
+<!-- Welcome & Overview Section -->
+<div class="content-card mb-4">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <h4 class="mb-3"><i class="fas fa-seedling text-success me-2"></i>Animal Feed Management System</h4>
+      <p class="text-muted mb-3">
+        This system tracks animal feeding schedules, feed types, quantities, and groups. 
+        Manage feeding times, monitor feed consumption, and ensure proper nutrition for all animals.
+      </p>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="badge bg-success bg-opacity-10 text-success border border-success">
+          <i class="fas fa-clock me-1"></i>Feeding Schedules
+        </span>
+        <span class="badge bg-info bg-opacity-10 text-info border border-info">
+          <i class="fas fa-box me-1"></i>Feed Inventory
+        </span>
+        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+          <i class="fas fa-list me-1"></i>Animal Groups
+        </span>
+        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+          <i class="fas fa-calculator me-1"></i>Quantity Tracking
+        </span>
+      </div>
+    </div>
+    <div class="col-md-4 text-md-end">
+      <div class="card border-success">
+        <div class="card-body text-center py-3">
+          <i class="fas fa-question-circle fa-2x text-success mb-2"></i>
+          <h6 class="mb-1">Quick Start</h6>
+          <small class="text-muted d-block mb-2">Add feed records for each animal group with scheduled feeding times</small>
+          <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addFeedModal">
+            <i class="fas fa-plus me-1"></i>Add Feed Record
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-md-3 col-sm-6 mb-3">
+    <div class="card bg-primary bg-gradient text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title text-white-50">Total Feed Records</h6>
+            <h2 class="mb-0">{{ total_feed }}</h2>
+          </div>
+          <i class="fas fa-clipboard-list fa-2x opacity-50"></i>
+        </div>
+        <small class="text-white-75">All feed entries</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6 mb-3">
+    <div class="card bg-success bg-gradient text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title text-white-50">Scheduled Feeds</h6>
+            <h2 class="mb-0">
+              {% if feed_records %}
+                {% set scheduled = [] %}
+                {% for record in feed_records %}
+                  {% if record.feeding_time %}
+                    {% set _ = scheduled.append(record) %}
+                  {% endif %}
+                {% endfor %}
+                {{ scheduled|length }}
+              {% else %}
+                0
+              {% endif %}
+            </h2>
+          </div>
+          <i class="fas fa-clock fa-2x opacity-50"></i>
+        </div>
+        <small class="text-white-75">With feeding time</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6 mb-3">
+    <div class="card bg-warning bg-gradient text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title text-white-50">Total Quantity</h6>
+            <h2 class="mb-0">
+              {% if feed_records %}
+                {% set total_qty = [] %}
+                {% for record in feed_records %}
+                  {% if record.quantity %}
+                    {% set _ = total_qty.append(record.quantity|float) %}
+                  {% endif %}
+                {% endfor %}
+                {{ total_qty|sum if total_qty else 0 }}
+              {% else %}
+                0
+              {% endif %}
+            </h2>
+          </div>
+          <i class="fas fa-weight-hanging fa-2x opacity-50"></i>
+        </div>
+        <small class="text-white-75">Units of feed</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6 mb-3">
+    <div class="card bg-info bg-gradient text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="card-title text-white-50">Unique Feed Types</h6>
+            <h2 class="mb-0">
+              {% if feed_records %}
+                {% set feed_types = [] %}
+                {% for record in feed_records %}
+                  {% if record.feed_type and record.feed_type not in feed_types %}
+                    {% set _ = feed_types.append(record.feed_type) %}
+                  {% endif %}
+                {% endfor %}
+                {{ feed_types|length }}
+              {% else %}
+                0
+              {% endif %}
+            </h2>
+          </div>
+          <i class="fas fa-seedling fa-2x opacity-50"></i>
+        </div>
+        <small class="text-white-75">Different feeds</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Feed Overview & Quick Guide -->
+<div class="row mb-4">
+  <div class="col-md-8">
+    <!-- Feed Type Distribution -->
+    <div class="content-card h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="fas fa-chart-pie text-primary me-2"></i> Feed Type Overview</h5>
+        <small class="text-muted">Most used feed types</small>
+      </div>
+      <div class="row">
+        {% if feed_records %}
+          {% set feed_type_counts = {} %}
+          {% for record in feed_records %}
+            {% set feed_type = record.feed_type %}
+            {% if feed_type in feed_type_counts %}
+              {% set _ = feed_type_counts.update({feed_type: feed_type_counts[feed_type] + 1}) %}
+            {% else %}
+              {% set _ = feed_type_counts.update({feed_type: 1}) %}
+            {% endif %}
+          {% endfor %}
+
+          {# Sort items by count descending, then take first 4 safely using Python-style slicing #}
+          {% set sorted_feed_types = feed_type_counts.items()|sort(attribute='1', reverse=True) %}
+          {% for feed_type, count in sorted_feed_types[:4] %}
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="card border-start border-4 border-success h-100">
+                <div class="card-body py-2">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="mb-1 text-truncate" title="{{ feed_type }}">{{ feed_type }}</h6>
+                      <small class="text-muted">{{ count }} record{% if count > 1 %}s{% endif %}</small>
+                    </div>
+                    <i class="fas fa-seedling text-success"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="col-12">
+            <div class="text-center py-4">
+              <i class="fas fa-seedling fa-2x text-muted mb-3"></i>
+              <p class="text-muted mb-0">No feed type data available</p>
+              <small class="text-muted">Add feed records to see distribution</small>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <!-- Quick Guide -->
+    <div class="content-card h-100">
+      <h5 class="mb-3"><i class="fas fa-info-circle text-info me-2"></i> Quick Guide</h5>
+      <div class="mb-3">
+        <h6 class="text-muted mb-2">Field Descriptions</h6>
+        <ul class="small text-muted mb-0 ps-3">
+          <li><strong>Feed Type:</strong> Type of animal feed</li>
+          <li><strong>Quantity:</strong> Amount in kg/lbs</li>
+          <li><strong>Animal Group:</strong> Specific animal group</li>
+          <li><strong>Feeding Time:</strong> Scheduled feeding time</li>
+        </ul>
+      </div>
+      <div class="mt-4">
+        <h6 class="text-muted mb-2">Best Practices</h6>
+        <ul class="small text-muted mb-0 ps-3">
+          <li>Record feed types accurately</li>
+          <li>Schedule regular feeding times</li>
+          <li>Track quantities for inventory</li>
+          <li>Group animals by feed needs</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Today's Feeding Schedule -->
+<div class="content-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0"><i class="fas fa-clock text-success me-2"></i> Today's Feeding Schedule</h5>
+    <small class="text-muted">Feeds scheduled for today</small>
+  </div>
+  {% if feed_records %}
+    {% set today_feeds = [] %}
+    {% for record in feed_records %}
+      {% if record.feeding_time %}
+        {% set _ = today_feeds.append(record) %}
+      {% endif %}
+    {% endfor %}
+
+    {% if today_feeds %}
+      <div class="row">
+        {% for feed in today_feeds[:6] %}
+          <div class="col-md-4 col-lg-2 col-sm-6 mb-3">
+            <div class="card border-success h-100">
+              <div class="card-body py-2">
+                <div class="d-flex align-items-center mb-2">
+                  <i class="fas fa-clock text-success me-2"></i>
+                  <strong class="small">{{ feed.feeding_time }}</strong>
+                </div>
+                <div class="mb-1">
+                  <small class="text-muted d-block">{{ feed.feed_type }}</small>
+                  <small class="text-muted">{{ feed.quantity }} units</small>
+                </div>
+                {% if feed.animal_group %}
+                <span class="badge bg-success bg-opacity-10 text-success border border-success small">
+                  {{ feed.animal_group }}
+                </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-4">
+        <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+        <p class="text-muted mb-0">No feeding times scheduled</p>
+        <small class="text-muted">Add feeding times to see schedule</small>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="text-center py-4">
+      <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+      <p class="text-muted mb-0">No feed records found</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Main Feed Records Table -->
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="mb-0">Feed Records Database</h4>
+      <p class="text-muted mb-0">Detailed view of all feed records and schedules. Click to view details.</p>
+    </div>
+    <div>
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFeedModal">
+        <i class="fas fa-plus me-2"></i> Add Feed Record
+      </button>
+      <!-- PRINT BUTTON ADDED -->
+      <button id="printFeed" class="btn btn-outline-secondary ms-2">
+        <i class="fas fa-print me-1"></i>Print
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Filters and Search -->
+  <div class="row mb-3">
+    <div class="col-md-8">
+      <div class="d-flex align-items-center">
+        <span class="me-3 text-muted small">Filter by:</span>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn btn-outline-success active" id="filterAll">All</button>
+          <button type="button" class="btn btn-outline-success" id="filterScheduled">Scheduled</button>
+          <button type="button" class="btn btn-outline-success" id="filterGroups">By Group</button>
+          <button type="button" class="btn btn-outline-success" id="filterRecent">Recent</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text"><i class="fas fa-search"></i></span>
+        <input type="text" class="form-control" placeholder="Search feed records..." id="feedSearch">
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-success">
+        <tr>
+          <th>ID</th>
+          <th>Feed Type</th>
+          <th>Quantity</th>
+          <th>Animal Group</th>
+          <th>Feeding Time</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="feedTable">
+        {% if feed_records %}
+          {% for f in feed_records %}
+          <tr class="feed-row" 
+              data-group="{{ f.animal_group or '' }}" 
+              data-time="{{ f.feeding_time or '' }}"
+              data-type="{{ f.feed_type|lower }}">
+            <td>
+              <span class="badge bg-secondary">F-{{ f.id }}</span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <i class="fas fa-seedling text-success me-2"></i>
+                <span class="fw-semibold">{{ f.feed_type }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning me-2">
+                  {{ f.quantity }}
+                </span>
+                <span class="text-muted small">units</span>
+              </div>
+            </td>
+            <td>
+              {% if f.animal_group %}
+              <span class="badge bg-info bg-opacity-10 text-info border border-info">
+                {{ f.animal_group }}
+              </span>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if f.feeding_time %}
+              <div class="d-flex align-items-center">
+                <i class="fas fa-clock text-success me-2"></i>
+                <span class="text-success fw-semibold">{{ f.feeding_time }}</span>
+              </div>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <a class="btn btn-info" href="{{ url_for('view_feed', feed_id=f.id) }}" title="View Details">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a class="btn btn-warning" href="{{ url_for('edit_feed', feed_id=f.id) }}" title="Edit Record">
+                  <i class="fas fa-edit"></i>
+                </a>
+
+                <!-- Soft coral delete button with CSRF guard -->
+                <form method="POST" action="{{ url_for('delete_feed', feed_id=f.id) }}"
+                      onsubmit="return confirm('Delete feed F-{{ f.id }}? This cannot be undone.');"
+                      style="display:inline; margin-left:6px;">
+                  {% if csrf_token is defined %}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {% endif %}
+                  <button type="submit" class="btn btn-delete" title="Delete">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6">
+              <div class="text-center py-5">
+                <i class="fas fa-seedling fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No feed records found</h5>
+                <p class="text-muted">This system tracks animal feeding schedules and feed inventory</p>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFeedModal">
+                  <i class="fas fa-plus me-2"></i> Add First Feed Record
+                </button>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if feed_records %}
+  <div class="row mt-3">
+    <div class="col-md-6">
+      <small class="text-muted">Showing {{ feed_records|length }} record{% if feed_records|length != 1 %}s{% endif %} • Click rows to select</small>
+    </div>
+    <div class="col-md-6 text-end">
+      <small class="text-muted">
+        <i class="fas fa-circle text-success small me-1"></i> Has feeding time
+        <i class="fas fa-circle text-info small mx-2 me-1"></i> Has animal group
+      </small>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Enhanced Add Feed Modal -->
+<div class="modal fade" id="addFeedModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Add Feed Record</h5>
+        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_feed') }}">
+        <div class="modal-body">
+          <div class="alert alert-info mb-3">
+            <i class="fas fa-info-circle me-2"></i>
+            <small>Record feed details for animal groups. Track feed types, quantities, and scheduled feeding times.</small>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Feed Type *</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-seedling"></i></span>
+                <input name="feed_type" class="form-control" required placeholder="e.g., Grain, Hay, Pellets">
+              </div>
+              <small class="text-muted">Type of animal feed</small>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Quantity *</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-weight-hanging"></i></span>
+                <input name="quantity" type="number" step="0.01" class="form-control" required placeholder="e.g., 10.5">
+                <span class="input-group-text">units</span>
+              </div>
+              <small class="text-muted">Amount in kg, lbs, or bags</small>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Animal Group</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-list"></i></span>
+              <input name="animal_group" class="form-control" placeholder="e.g., Cattle, Poultry, Goats">
+            </div>
+            <small class="text-muted">Specific group of animals</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Feeding Time</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-clock"></i></span>
+              <input name="feeding_time" type="time" class="form-control">
+            </div>
+            <small class="text-muted">Scheduled feeding time (24-hour format)</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-sticky-note"></i></span>
+              <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes about the feed, special instructions, storage info..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+          <button class="btn btn-success" type="submit">
+            <i class="fas fa-save me-2"></i>Save Feed Record
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .content-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+  }
+  .feed-row:hover {
+    background-color: rgba(40, 167, 69, 0.05) !important;
+    cursor: pointer;
+  }
+  .table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.02);
+  }
+  .border-start {
+    border-left-width: 4px !important;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    border-top: 4px solid;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .stat-card i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #666;
+  }
+  .stat-card h3 {
+    font-size: 1.8rem;
+    margin: 0.5rem 0;
+  }
+  .stat-card p {
+    color: #666;
+    margin: 0;
+    font-size: 0.9rem;
+  }
+
+  /* Soft coral delete button */
+  .btn-delete {
+    background: #ff7043;
+    border-color: #ff7043;
+    color: #fff;
+    padding: .36rem .55rem;
+    border-radius: .25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-delete:hover, .btn-delete:focus {
+    background: #f4511e;
+    border-color: #f4511e;
+    color: #fff;
+  }
+
+  /* Print-specific rules: show only the .content-card content when printing */
+  @media print {
+    /* hide everything by default */
+    body * {
+      visibility: hidden;
+    }
+    /* show content-card elements and their descendants */
+    .content-card, .content-card * {
+      visibility: visible;
+    }
+    /* position printable content at top-left and expand width */
+    .content-card {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      box-shadow: none !important;
+    }
+    /* hide interactive UI elements */
+    .btn, .btn-group, .input-group, .modal, .btn-delete, .btn-outline-secondary, button[data-bs-toggle], .btn-close {
+      display: none !important;
+    }
+    /* tables should break nicely across pages */
+    table { page-break-inside: auto; }
+    tr    { page-break-inside: avoid; page-break-after: auto; }
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+  }
+</style>
+
+<script>
+  // Filter functionality
+  document.getElementById('filterAll')?.addEventListener('click', function() {
+    setActiveFilter(this);
+    showAllRows();
+  });
+
+  document.getElementById('filterScheduled')?.addEventListener('click', function() {
+    setActiveFilter(this);
+    const rows = document.querySelectorAll('.feed-row');
+    rows.forEach(row => {
+      const hasTime = row.getAttribute('data-time') !== '';
+      row.style.display = hasTime ? '' : 'none';
+    });
+  });
+
+  document.getElementById('filterGroups')?.addEventListener('click', function() {
+    setActiveFilter(this);
+    const rows = document.querySelectorAll('.feed-row');
+    rows.forEach(row => {
+      const hasGroup = row.getAttribute('data-group') !== '';
+      row.style.display = hasGroup ? '' : 'none';
+    });
+  });
+
+  document.getElementById('filterRecent')?.addEventListener('click', function() {
+    setActiveFilter(this);
+    const rows = document.querySelectorAll('.feed-row');
+    // Show only first 10 rows as "recent"
+    rows.forEach((row, index) => {
+      row.style.display = index < 10 ? '' : 'none';
+    });
+  });
+
+  function setActiveFilter(button) {
+    document.querySelectorAll('#filterAll, #filterScheduled, #filterGroups, #filterRecent').forEach(btn => {
+      btn.classList.remove('active');
+      btn.classList.add('btn-outline-success');
+    });
+    button.classList.add('active');
+    button.classList.remove('btn-outline-success');
+  }
+
+  function showAllRows() {
+    const rows = document.querySelectorAll('.feed-row');
+    rows.forEach(row => {
+      row.style.display = '';
+    });
+  }
+
+  // Search functionality
+  document.getElementById('feedSearch')?.addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('.feed-row');
+
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+  });
+
+  // Add row click functionality
+  document.querySelectorAll('.feed-row').forEach(row => {
+    row.addEventListener('click', function(e) {
+      // Don't trigger if clicking on buttons or links
+      if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' ||
+          e.target.closest('a') || e.target.closest('button')) {
+        return;
+      }
+
+      // Find the view details button and click it
+      const viewBtn = this.querySelector('a[href*="view_feed"]');
+      if (viewBtn) {
+        viewBtn.click();
+      }
+    });
+  });
+
+  // Card hover effects
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-2px)';
+      this.style.transition = 'transform 0.2s ease';
+    });
+
+    card.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+    });
+  });
+
+  // Initialize time field with current time if empty
+  document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+    // Set default time for feeding time in modal
+    const feedingTimeInput = document.querySelector('input[name="feeding_time"]');
+    if (feedingTimeInput && !feedingTimeInput.value) {
+      feedingTimeInput.value = currentTime;
+    }
+  });
+
+  // PRINT button handler: closes any open modals then prints using @media print rules
+  (function() {
+    const printBtn = document.getElementById('printFeed');
+    if (!printBtn) return;
+    printBtn.addEventListener('click', function() {
+      // Close any open Bootstrap modals to avoid them showing in print preview
+      try {
+        document.querySelectorAll('.modal.show').forEach(m => {
+          const instance = bootstrap.Modal.getInstance(m);
+          if (instance) instance.hide();
+        });
+      } catch (err) {
+        // ignore if bootstrap isn't available
+      }
+      // Update printable timestamp if you have one (not present here), then print
+      window.print();
+    });
+  })();
+</script>
+{% endblock %}

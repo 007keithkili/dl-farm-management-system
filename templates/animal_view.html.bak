@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Animal Detail{% endblock %}
+{% block page_title %}Animal Detail{% endblock %}
+{% block page_subtitle %}Animal record and history{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Animal A-{{ animal.id }}</h4>
+    <div>
+      <a class="btn btn-warning" href="{{ url_for('edit_animal', animal_id=animal.id) }}"><i class="fas fa-edit"></i> Edit</a>
+      <a class="btn btn-secondary" href="{{ url_for('animals') }}">Back</a>
+    </div>
+  </div>
+
+  <dl class="row">
+    <dt class="col-sm-3">Tag</dt><dd class="col-sm-9">{{ animal.tag_number }}</dd>
+    <dt class="col-sm-3">Breed</dt><dd class="col-sm-9">{{ animal.breed }}</dd>
+    <dt class="col-sm-3">Birth Date</dt><dd class="col-sm-9">{{ animal.birth_date or '-' }}</dd>
+    <dt class="col-sm-3">Weight</dt><dd class="col-sm-9">{{ animal.weight or '-' }}</dd>
+    <dt class="col-sm-3">Status</dt><dd class="col-sm-9">{{ animal.status }}</dd>
+    <dt class="col-sm-3">Pen Number</dt><dd class="col-sm-9">{{ animal.pen_number or '-' }}</dd>
+    <dt class="col-sm-3">Health Status</dt><dd class="col-sm-9">{{ animal.health_status }}</dd>
+    <dt class="col-sm-3">Created At</dt><dd class="col-sm-9">{{ animal.created_at }}</dd>
+  </dl>
+</div>
+{% endblock %}

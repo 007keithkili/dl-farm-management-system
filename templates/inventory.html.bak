@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Farm Inventory Dashboard</h2>
+    <p>Track inventory levels, feeds, medicines, equipment, and supplies</p>
+</div>
+
+<div class="cards">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Feeds</h3>
+            <div class="card-icon" style="background: #3498db;">
+                <i class="fas fa-seedling" style="color: white;"></i>
+            </div>
+        </div>
+        <div class="card-value">2</div>
+        <p class="card-text">Feed types in stock</p>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Medicines</h3>
+            <div class="card-icon" style="background: #e74c3c;">
+                <i class="fas fa-pills" style="color: white;"></i>
+            </div>
+        </div>
+        <div class="card-value">1</div>
+        <p class="card-text">Medicine types</p>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Equipment</h3>
+            <div class="card-icon" style="background: #f39c12;">
+                <i class="fas fa-tools" style="color: white;"></i>
+            </div>
+        </div>
+        <div class="card-value">0</div>
+        <p class="card-text">Equipment items</p>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Supplies</h3>
+            <div class="card-icon" style="background: #2ecc71;">
+                <i class="fas fa-boxes" style="color: white;"></i>
+            </div>
+        </div>
+        <div class="card-value">0</div>
+        <p class="card-text">Supply items</p>
+    </div>
+</div>
+
+<div class="section">
+    <h3>Inventory Items</h3>
+    
+    <!-- Inventory Tabs -->
+    <div class="inventory-tabs">
+        <button class="inventory-tab active" data-tab="feeds">Animal Feeds</button>
+        <button class="inventory-tab" data-tab="medicines">Medicines</button>
+        <button class="inventory-tab" data-tab="equipment">Equipment</button>
+        <button class="inventory-tab" data-tab="supplies">Supplies</button>
+    </div>
+    
+    <!-- Feeds Tab -->
+    <div class="tab-content active" id="feedsTab">
+        <div class="table-header">
+            <h4>Animal Feeds Inventory</h4>
+            <button class="btn btn-primary" onclick="openFeedModal()">
+                <i class="fas fa-plus"></i> Add Feed Item
+            </button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ITEM</th>
+                        <th>STOCK (kg)</th>
+                        <th>MIN LEVEL</th>
+                        <th>STATUS</th>
+                        <th>SUPPLIER</th>
+                        <th>EXPIRY DATE</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Pig Finisher Feed</td>
+                        <td>800 kg</td>
+                        <td>10 kg</td>
+                        <td><span class="status-badge status-active">OK</span></td>
+                        <td>United Feed</td>
+                        <td>2026-04-01</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Pig Starter Feed</td>
+                        <td>1,500 kg</td>
+                        <td>100 kg</td>
+                        <td><span class="status-badge status-active">OK</span></td>
+                        <td>Animal Feed Co.</td>
+                        <td>2026-03-15</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Pig Premix (Vitamins)</td>
+                        <td>50 kg</td>
+                        <td>5 kg</td>
+                        <td><span class="status-badge status-active">OK</span></td>
+                        <td>Farm Supplies Ltd</td>
+                        <td>2025-12-31</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Medicines Tab -->
+    <div class="tab-content" id="medicinesTab">
+        <div class="table-header">
+            <h4>Medicines Inventory</h4>
+            <button class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Medicine
+            </button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>MEDICINE NAME</th>
+                        <th>TYPE</th>
+                        <th>QUANTITY</th>
+                        <th>EXPIRY DATE</th>
+                        <th>STORAGE</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Antibiotic Injection</td>
+                        <td>Antibiotic</td>
+                        <td>50 vials</td>
+                        <td>2025-11-30</td>
+                        <td>Refrigerated</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vitamin Complex</td>
+                        <td>Supplement</td>
+                        <td>25 packs</td>
+                        <td>2026-02-28</td>
+                        <td>Room Temp</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Equipment Tab -->
+    <div class="tab-content" id="equipmentTab">
+        <div class="table-header">
+            <h4>Equipment Inventory</h4>
+            <button class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Equipment
+            </button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>EQUIPMENT NAME</th>
+                        <th>TYPE</th>
+                        <th>QUANTITY</th>
+                        <th>CONDITION</th>
+                        <th>LAST SERVICE</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-tools" style="font-size: 3rem; color: #ddd; margin-bottom: 15px;"></i>
+                            <p>No equipment items found</p>
+                            <button class="btn btn-primary">Add First Equipment</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Supplies Tab -->
+    <div class="tab-content" id="suppliesTab">
+        <div class="table-header">
+            <h4>Supplies Inventory</h4>
+            <button class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Supplies
+            </button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ITEM NAME</th>
+                        <th>CATEGORY</th>
+                        <th>QUANTITY</th>
+                        <th>UNIT</th>
+                        <th>LAST ORDER</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-boxes" style="font-size: 3rem; color: #ddd; margin-bottom: 15px;"></i>
+                            <p>No supply items found</p>
+                            <button class="btn btn-primary">Add First Supply Item</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Feed Modal -->
+<div class="modal" id="feedModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Feed Item</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="feedForm">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Feed Name *</label>
+                        <input type="text" name="feed_name" class="form-control" required>
+                    </div>
+                    <div class="form-col">
+                        <label>Feed Type *</label>
+                        <select name="feed_type" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="starter">Starter Feed</option>
+                            <option value="grower">Grower Feed</option>
+                            <option value="finisher">Finisher Feed</option>
+                            <option value="premix">Premix</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Quantity (kg) *</label>
+                        <input type="number" step="0.1" name="quantity" class="form-control" required>
+                    </div>
+                    <div class="form-col">
+                        <label>Minimum Level (kg) *</label>
+                        <input type="number" step="0.1" name="min_level" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Unit Price (Ksh)</label>
+                        <input type="number" step="0.01" name="unit_price" class="form-control">
+                    </div>
+                    <div class="form-col">
+                        <label>Supplier</label>
+                        <select name="supplier" class="form-control">
+                            <option value="">Select Supplier</option>
+                            <option value="United Feed">United Feed</option>
+                            <option value="Animal Feed Co.">Animal Feed Co.</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Purchase Date</label>
+                        <input type="date" name="purchase_date" class="form-control">
+                    </div>
+                    <div class="form-col">
+                        <label>Expiry Date</label>
+                        <input type="date" name="expiry_date" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Feed Item</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openFeedModal() {
+    document.getElementById('feedModal').style.display = 'block';
+}
+
+// Inventory tabs functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.inventory-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            
+            // Remove active class from all tabs and contents
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            this.classList.add('active');
+            document.getElementById(tabId + 'Tab').classList.add('active');
+        });
+    });
+    
+    // Modal functionality
+    const modal = document.getElementById('feedModal');
+    const closeBtns = document.querySelectorAll('.close-modal');
+    
+    closeBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+    });
+    
+    window.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+</script>
+
+<style>
+.inventory-tabs {
+    display: flex;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+.inventory-tab {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #7f8c8d;
+    transition: all 0.3s;
+}
+
+.inventory-tab:hover {
+    color: #3498db;
+}
+
+.inventory-tab.active {
+    color: #3498db;
+    border-bottom-color: #3498db;
+    font-weight: 600;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+</style>
+{% endblock %}

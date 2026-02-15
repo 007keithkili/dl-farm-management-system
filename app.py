@@ -2998,6 +2998,53 @@ def tasks():
                            completed_count=completed_count,
                            overdue_count=overdue_count,
                            staff_map=staff_map)
+    # Add this to app.py (near your other routes)
+from flask import request, redirect, url_for, render_template, flash, abort
+from flask_login import login_required
+
+@app.route('/tasks/<int:task_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_task(task_id):
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # GET -> show edit form
+        if request.method == 'GET':
+            cur.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+            row = cur.fetchone()
+            if not row:
+                abort(404)
+            task = rows_to_objs([row], cur)[0]
+            # Render your edit template (create task_edit.html if missing)
+            return render_template('task_edit.html', task=task)
+
+        # POST -> update fields (form field names below are examples; adapt to your form)
+        form = request.form
+        title = form.get('title') or None
+        description = form.get('description') or None
+        status = form.get('status') or None
+        assigned_to = form.get('assigned_to') or None
+
+        cur.execute("""
+            UPDATE tasks
+               SET title = ?, description = ?, status = ?, assigned_to = ?, updated_at = datetime('now')
+             WHERE id = ?
+        """, (title, description, status, assigned_to, task_id))
+        conn.commit()
+
+        flash('Task updated successfully', 'success')
+        return redirect(url_for('view_task', task_id=task_id))
+
+    except Exception:
+        app.logger.exception("edit_task error")
+        flash('Failed to update task', 'danger')
+        return redirect(url_for('view_task', task_id=task_id))
+    finally:
+        if conn:
+            conn.close()
+
 
 # ----- Reports ----
 

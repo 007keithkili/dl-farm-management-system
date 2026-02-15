@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{# Defensive defaults so template won't error if route doesn't pass them #}
+{% if creating is not defined %}{% set creating = True %}{% endif %}
+{% if item is not defined %}{% set item = None %}{% endif %}
+
+{% block title %}{{ 'Add Item' if creating else 'Edit Item' }}{% endblock %}
+{% block page_title %}{{ 'Add Inventory Item' if creating else 'Edit Inventory Item' }}{% endblock %}
+{% block page_subtitle %}Store keeper — add or update item details{% endblock %}
+
+{% block extra_css %}
+<style>
+.content-card { padding:20px; background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04); }
+.form-row { display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; align-items:start; }
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.section-title { font-weight:700; margin-top:8px; margin-bottom:4px; color:#374151; }
+.small-muted { color:#6b7280; font-size:0.9rem; }
+@media (max-width:720px) { .form-row { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 style="margin:0;">{{ 'Add Item' if creating else 'Edit Item' }}</h4>
+      <p class="text-muted mb-0">Enter item details</p>
+    </div>
+    <div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('inventory_list') }}">Back</a>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('inventory_create') if creating else url_for('edit_inventory', item_id=item.id) }}">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Item name *</label>
+        <input name="item_name" class="form-control" required value="{{ item.item_name if item else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">SKU</label>
+        <input name="sku" class="form-control" value="{{ item.sku if item else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Quantity on hand</label>
+        <input name="quantity" type="number" step="1" class="form-control" value="{{ item.quantity_on_hand if item else 0 }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Location</label>
+        <input name="location" class="form-control" value="{{ item.location if item else '' }}" placeholder="Store, shelf, barn...">
+      </div>
+
+      <!-- Received section -->
+      <div style="grid-column: 1 / -1;">
+        <div class="section-title">Received (initial receipt)</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Received on (date)</label>
+        <input name="received_date" class="form-control date-picker" placeholder="YYYY-MM-DD"
+               value="{{ item.received_date if item and (item.received_date is defined) else '' }}">
+        <small class="small-muted">Date the item was received into stock</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Received by</label>
+        <input name="received_by" class="form-control"
+               value="{{ item.received_by if item and (item.received_by is defined) else (current_user.username if current_user is defined else '') }}">
+        <small class="small-muted">Person who accepted the delivery</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Delivered by (deliverer)</label>
+        <input name="delivered_by" class="form-control" value="{{ item.delivered_by if item and (item.delivered_by is defined) else '' }}">
+        <small class="small-muted">Who delivered / brought the goods</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Delivered on (date)</label>
+        <input name="delivered_date" class="form-control date-picker" placeholder="YYYY-MM-DD"
+               value="{{ item.delivered_date if item and (item.delivered_date is defined) else '' }}">
+        <small class="small-muted">Date the deliverer handed over the goods</small>
+      </div>
+
+      <!-- Dispatched section -->
+      <div style="grid-column: 1 / -1;">
+        <div class="section-title">Dispatched (items sent out)</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Dispatched on (date)</label>
+        <input name="dispatched_date" class="form-control date-picker" placeholder="YYYY-MM-DD"
+               value="{{ item.dispatched_date if item and (item.dispatched_date is defined) else '' }}">
+        <small class="small-muted">Date the item was dispatched/sent out</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Dispatched by</label>
+        <input name="dispatched_by" class="form-control" value="{{ item.dispatched_by if item and (item.dispatched_by is defined) else '' }}">
+        <small class="small-muted">Person who handed the goods out (dispatcher)</small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Recipient / Taken by</label>
+        <input name="dispatched_to" class="form-control" value="{{ item.dispatched_to if item and (item.dispatched_to is defined) else '' }}">
+        <small class="small-muted">Who received / took the items</small>
+      </div>
+
+      <div style="grid-column:1 / -1;">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="4">{{ item.notes if item else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="mt-3" style="display:flex; gap:8px;">
+      <button class="btn btn-primary" type="submit">{{ 'Create' if creating else 'Save Changes' }}</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('inventory_list') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    if (window.flatpickr) {
+      flatpickr('.date-picker', { dateFormat: 'Y-m-d', allowInput: true });
+    }
+  });
+</script>
+{% endblock %}

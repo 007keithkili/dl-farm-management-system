@@ -1,0 +1,169 @@
+﻿{% extends "base.html" %}
+
+{# Defensive default in case items / totals are not provided #}
+{% if items is not defined %}{% set items = [] %}{% endif %}
+{% if total_quantity is not defined %}{% set total_quantity = 0 %}{% endif %}
+{% if total_items is not defined %}{% set total_items = 0 %}{% endif %}
+
+{% block title %}Inventory{% endblock %}
+{% block page_title %}Store Inventory{% endblock %}
+{% block page_subtitle %}Check items in (received) and out (delivered){% endblock %}
+
+{% block extra_css %}
+<style>
+.content-card { background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04); }
+.table-responsive { border-radius:10px; border:1px solid #e2e8f0; overflow:hidden; }
+.action-btns { display:flex; gap:6px; align-items:center; }
+.qty-badge { font-weight:700; padding:6px 10px; border-radius:8px; background:#f1f5f9; }
+.small-muted { color:#6b7280; font-size:0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 style="margin:0;">Inventory</h4>
+      <p class="text-muted mb-0">Quickly check in received items or check out delivered items. Each transaction records who performed it, reference and notes.</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <a class="btn btn-outline-secondary" href="{{ url_for('inventory_export') }}"><i class="fas fa-file-export me-1"></i>Export CSV</a>
+      <a class="btn btn-primary" href="{{ url_for('inventory_create') }}"><i class="fas fa-plus-circle me-1"></i>Add Item</a>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>Item</th>
+          <th>SKU</th>
+          <th>Location</th>
+          <th>On Hand</th>
+          <th>Notes</th>
+          <th style="width:300px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if items %}
+          {% for it in items %}
+            <tr data-id="{{ it.id }}">
+              <td><strong>{{ it.item_name }}</strong></td>
+              <td>{{ it.sku or '—' }}</td>
+              <td>{{ it.location or '—' }}</td>
+              <td><span class="qty-badge">{{ it.quantity_on_hand or 0 }}</span></td>
+              <td style="max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ it.notes or '' }}">{{ it.notes or '—' }}</td>
+              <td>
+                <div class="action-btns">
+                  <a class="btn btn-outline-info btn-sm" href="{{ url_for('view_inventory', item_id=it.id) }}" title="View"><i class="fas fa-eye"></i></a>
+                  <a class="btn btn-outline-warning btn-sm" href="{{ url_for('edit_inventory', item_id=it.id) }}" title="Edit"><i class="fas fa-edit"></i></a>
+
+                  {% if current_user.role != 'storekeeper' %}
+<button class="btn btn-outline-success btn-sm" title="Check In"
+                    onclick="promptTx({{ it.id }}, 'in', '{{ it.item_name|escape }}')"><i class="fas fa-plus"></i> In</button>
+
+                  <button class="btn btn-outline-danger btn-sm" title="Check Out"
+                    onclick="promptTx({{ it.id }}, 'out', '{{ it.item_name|escape }}')"><i class="fas fa-minus"></i> Out</button>
+
+                  <button class="btn btn-outline-secondary btn-sm" title="Delete"
+                    onclick="confirmAction('Delete item {{ it.item_name }}?', function(ok){ if(ok) deleteItem({{ it.id }}); })">
+                    <i class="fas fa-trash"></i>
+                  </button>
+{% endif %}
+                </div>
+                <div class="small-muted mt-1">
+                  <small>View history for who received / delivered and when.</small>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-4">
+              <i class="fas fa-box-open fa-2x text-muted"></i>
+              <p class="mt-2 text-muted">No inventory items found. Add your first item.</p>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  function confirmAction(message, cb){
+    try { cb(window.confirm(message)); } catch(e){ cb(false); }
+  }
+  window.confirmAction = confirmAction;
+
+  async function sendTx(itemId, payload) {
+    const res = await fetch(`/inventory/${itemId}/tx`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json().catch(()=>({}));
+    return Object.assign({ok: res.ok}, json);
+  }
+
+  window.promptTx = async function(itemId, txType, itemName) {
+    try {
+      const qtyStr = prompt(`${txType === 'in' ? 'Check IN' : 'Check OUT'} — Enter quantity for "${itemName}" (whole number):`, '1');
+      if (!qtyStr) return;
+      const qty = parseInt(qtyStr, 10);
+      if (!qty || qty <= 0) { alert('Please enter a valid quantity greater than 0'); return; }
+
+      let performed_by = prompt(`${txType === 'in' ? 'Received by (who received the items?)' : 'Delivered by (who handed over the items?)'}`, '') || '';
+      performed_by = performed_by.trim();
+
+      let reference = '';
+      let notes = '';
+
+      if (txType === 'in') {
+        const supplier = prompt('Supplier / sender (optional):', '') || '';
+        const ref = prompt('Reference (PO / delivery note / driver ID — optional):', '') || '';
+        reference = supplier ? `From: ${supplier}` + (ref ? ` | Ref: ${ref}` : '') : (ref ? `Ref: ${ref}` : '');
+        notes = prompt('Notes (optional):', '') || '';
+      } else {
+        const recipient = prompt('Recipient (who are items dispatched to?):', '') || '';
+        const ref = prompt('Reference (waybill / dispatch note / job no. — optional):', '') || '';
+        reference = recipient ? `To: ${recipient}` + (ref ? ` | Ref: ${ref}` : '') : (ref ? `Ref: ${ref}` : '');
+        notes = prompt('Notes (optional):', '') || '';
+      }
+
+      let summary = `${txType === 'in' ? 'CHECK IN' : 'CHECK OUT'}\nItem: ${itemName}\nQuantity: ${qty}\nPerformed by: ${performed_by || '(not specified)'}\n${reference ? 'Reference: ' + reference + '\n' : ''}${notes ? 'Notes: ' + notes + '\n' : ''}\nProceed?`;
+      const ok = window.confirm(summary);
+      if (!ok) return;
+
+      const payload = {
+        tx_type: txType,
+        quantity: qty,
+        reference: reference,
+        notes: notes,
+        performed_by: performed_by
+      };
+
+      const result = await sendTx(itemId, payload);
+      if (result && result.ok) location.reload();
+      else alert(result && result.error ? ('Transaction failed: ' + result.error) : 'Transaction failed');
+    } catch (err) {
+      console.error('promptTx error', err);
+      alert('Request failed — see console for details');
+    }
+  };
+
+  window.deleteItem = function(itemId) {
+    fetch(`/inventory/${itemId}/delete`, {method: 'POST', headers: {'Accept': 'application/json'}})
+      .then(r => r.json().catch(() => ({})))
+      .then(j => {
+        if (j && j.ok) location.reload(); else alert('Delete failed');
+      })
+      .catch(e => { console.error(e); alert('Delete failed'); });
+  };
+})();
+</script>
+{% endblock %}
+

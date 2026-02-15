@@ -1,0 +1,1000 @@
+{% extends "base.html" %}
+{% block title %}Financials{% endblock %}
+{% block page_title %}Financials{% endblock %}
+{% block page_subtitle %}Income & expenses{% endblock %}
+
+{% block content %}
+<!-- Financial Dashboard Overview -->
+<div class="content-card mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h4 class="mb-3"><i class="fas fa-chart-line text-success me-2"></i>Financial Dashboard</h4>
+            <p class="text-muted mb-3">
+                Track all income, expenses, and financial transactions in real-time. Monitor profitability, 
+                analyze spending patterns, and make informed financial decisions for your farm operations.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                    <i class="fas fa-money-bill-wave me-1"></i>Income Tracking
+                </span>
+                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">
+                    <i class="fas fa-file-invoice-dollar me-1"></i>Expense Management
+                </span>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                    <i class="fas fa-chart-pie me-1"></i>Financial Analytics
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                    <i class="fas fa-balance-scale me-1"></i>Profit Analysis
+                </span>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="card border-success">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-calculator fa-2x text-success mb-2"></i>
+                    <h6 class="mb-1">Quick Actions</h6>
+                    <small class="text-muted d-block mb-2">Record transactions or view reports</small>
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addFinancialModal">
+                        <i class="fas fa-plus me-1"></i>New Transaction
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Financial Overview Cards (made compact with overview-compact class) -->
+<div class="row mb-4 overview-compact">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-success bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Income</h6>
+                        <h2 class="mb-0">KSh{{ (total_income|float)|round(2) }}</h2>
+                    </div>
+                    <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">All revenue streams</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-danger bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Expenses</h6>
+                        <h2 class="mb-0">KSh{{ (total_expense|float)|round(2) }}</h2>
+                    </div>
+                    <i class="fas fa-file-invoice-dollar fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Operating costs</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-primary bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Net Profit</h6>
+                        <h2 class="mb-0">KSh{{ (net_profit|float)|round(2) }}</h2>
+                    </div>
+                    <i class="fas fa-balance-scale fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">
+                    {% if net_profit|float > 0 %}
+                    <i class="fas fa-arrow-up me-1"></i>Profit
+                    {% else %}
+                    <i class="fas fa-arrow-down me-1"></i>Loss
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-info bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Records</h6>
+                        <h2 class="mb-0">{{ total_financial_records }}</h2>
+                    </div>
+                    <i class="fas fa-list fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">All transactions</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Health & Analytics -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <!-- Income vs Expense Breakdown -->
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-chart-bar text-primary me-2"></i> Financial Overview</h5>
+                <small class="text-muted">Income vs Expense breakdown</small>
+            </div>
+            
+            {% if financial_records %}
+                {% set income_amount = total_income|float %}
+                {% set expense_amount = total_expense|float %}
+                {% set total_amount = (income_amount + expense_amount) if (income_amount + expense_amount) != 0 else 0 %}
+
+                <div class="row align-items-center">
+                    <div class="col-md-5">
+                        <!-- Visual Bar Chart -->
+                        <div class="financial-bars">
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="small text-success">Income</span>
+                                    <small class="text-muted">KSh{{ income_amount|round(2) }}</small>
+                                </div>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ (income_amount / total_amount * 100) if total_amount > 0 else 0 }}%;">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="small text-danger">Expenses</span>
+                                    <small class="text-muted">KSh{{ expense_amount|round(2) }}</small>
+                                </div>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-danger" role="progressbar" 
+                                         style="width: {{ (expense_amount / total_amount * 100) if total_amount > 0 else 0 }}%;">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="small text-primary">Net Profit</span>
+                                    <small class="text-muted">KSh{{ (net_profit|float)|round(2) }}</small>
+                                </div>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar 
+                                        {% if net_profit|float > 0 %}bg-success
+                                        {% else %}bg-danger{% endif %}" role="progressbar" 
+                                         style="width: {{ ((net_profit|float / income_amount * 100) if income_amount > 0 else 0)|abs }}%;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-7">
+                        <!-- Quick Stats -->
+                        <div class="row text-center">
+                            <div class="col-6 mb-4">
+                                <div class="p-3 border rounded compact-stat">
+                                    <i class="fas fa-percentage fa-2x text-info mb-2"></i>
+                                    <h4 class="mb-1">
+                                        {% if income_amount > 0 %}
+                                            {{ ((expense_amount / income_amount * 100)|round(1)) }}
+                                        {% else %}
+                                            0.0
+                                        {% endif %}%
+                                    </h4>
+                                    <small class="text-muted">Expense Ratio</small>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-4">
+                                <div class="p-3 border rounded compact-stat">
+                                    <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                                    <h4 class="mb-1">
+                                        {% if expense_amount > 0 %}
+                                            {{ ((income_amount / expense_amount * 100)|round(1)) }}
+                                        {% else %}
+                                            100.0
+                                        {% endif %}%
+                                    </h4>
+                                    <small class="text-muted">Revenue Growth</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-6">
+                                <div class="p-3 border rounded compact-stat">
+                                    <i class="fas fa-calendar-alt fa-2x text-warning mb-2"></i>
+                                    <h4 class="mb-1">{{ financial_records|length }}</h4>
+                                    <small class="text-muted">Transactions</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 border rounded compact-stat">
+                                    <i class="fas fa-tags fa-2x text-primary mb-2"></i>
+                                    <h4 class="mb-1">
+                                        {% set categories = [] %}
+                                        {% for record in financial_records %}
+                                            {% if record.category not in categories %}
+                                                {% set _ = categories.append(record.category) %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {{ categories|length }}
+                                    </h4>
+                                    <small class="text-muted">Categories</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No financial data</h5>
+                    <p class="text-muted mb-0">Record transactions to see financial analytics</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Recent Transactions & Categories -->
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-history text-success me-2"></i> Recent Activity</h5>
+                <small class="text-muted">Latest transactions</small>
+            </div>
+            
+            {% if financial_records %}
+                {# Prepare recent list safely and render up to 5 items #}
+                {% set all_recent = financial_records | sort(attribute='transaction_date', reverse=True) %}
+                <div class="list-group list-group-flush recent-scroll">
+                    {% for transaction in all_recent %}
+                        {% if loop.index0 < 5 %}
+                        <div class="list-group-item border-0 px-0 py-2 compact-list-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="badge 
+                                            {% if transaction.transaction_type == 'income' %}bg-success
+                                            {% else %}bg-danger{% endif %} me-2 compact-badge">
+                                            {{ transaction.transaction_type|title }}
+                                        </span>
+                                        <strong class="compact-title">{{ transaction.category }}</strong>
+                                    </div>
+                                    <small class="text-muted">{{ transaction.description[:30] }}{% if transaction.description|length > 30 %}...{% endif %}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-semibold 
+                                        {% if transaction.transaction_type == 'income' %}text-success
+                                        {% else %}text-danger{% endif %}">
+                                        KSh{{ (transaction.amount|float)|round(2) }}
+                                    </div>
+                                    <small class="text-muted">{{ transaction.transaction_date }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                
+                <!-- Top Categories -->
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="text-muted mb-3"><i class="fas fa-tags text-primary me-2"></i> Top Categories</h6>
+                    {% set category_totals = {} %}
+                    {% for record in financial_records %}
+                        {% set category = record.category %}
+                        {% set amount = record.amount|float %}
+                        {% if record.transaction_type == 'expense' %}
+                            {% set amount = -amount %}
+                        {% endif %}
+                        {% if category in category_totals %}
+                            {% set _ = category_totals.update({category: category_totals[category] + amount}) %}
+                        {% else %}
+                            {% set _ = category_totals.update({category: amount}) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% set sorted_pairs = category_totals.items()|sort(attribute='1', reverse=True) %}
+                    {% for pair in sorted_pairs %}
+                        {% if loop.index0 < 4 %}
+                            {% set category = pair[0] %}
+                            {% set total = pair[1] %}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="small">{{ category }}</span>
+                                    <small class="text-muted">KSh{{ total|round(2) }}</small>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar 
+                                        {% if total > 0 %}bg-success{% else %}bg-danger{% endif %}" 
+                                        style="width: {{ ((total / (total_income|float if (total_income|float) > 0 else 1) * 100)|abs) if (total_income|float) != 0 else 0 }}%;">
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-history fa-2x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No recent transactions</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Records with Toggle View -->
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0">Financial Records</h4>
+            <p class="text-muted mb-0">All income and expense transactions. Click any transaction for details.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" id="toggleViewBtn">
+                <i class="fas fa-table me-2"></i>Toggle Table View
+            </button>
+            <button class="btn btn-outline-primary" id="printBtn">
+                <i class="fas fa-print me-2"></i> Print Records
+            </button>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFinancialModal">
+                <i class="fas fa-plus me-2"></i> Add Transaction
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <span class="me-3 text-muted small">Filter by:</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-success active" id="filterAll">All</button>
+                    <button type="button" class="btn btn-outline-success" id="filterIncome">Income</button>
+                    <button type="button" class="btn btn-outline-danger" id="filterExpense">Expense</button>
+                    <button type="button" class="btn btn-outline-primary" id="filterRecent">Recent</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search transactions..." id="searchInput">
+                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compact Card View -->
+    <div class="row" id="cardView">
+        {% if financial_records %}
+            {% for r in financial_records %}
+            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-3 transaction-card" 
+                 data-type="{{ r.transaction_type }}"
+                 data-category="{{ r.category|lower }}"
+                 data-amount="{{ r.amount|float }}"
+                 data-date="{{ r.transaction_date }}">
+                <div class="card h-100 border-start border-4 
+                    {% if r.transaction_type == 'income' %}border-success
+                    {% else %}border-danger{% endif %}">
+                    <div class="card-body py-2 px-3">
+                        <!-- Transaction Header -->
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="transaction-icon-sm me-2
+                                    {% if r.transaction_type == 'income' %}bg-success-opacity-10 text-success
+                                    {% else %}bg-danger-opacity-10 text-danger{% endif %}">
+                                    <i class="fas 
+                                        {% if r.transaction_type == 'income' %}fa-money-bill-wave
+                                        {% else %}fa-file-invoice-dollar{% endif %}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-0 compact-title">{{ r.category|truncate(20) }}</h6>
+                                    <small class="text-muted d-block compact-subtitle">{{ r.transaction_date }}</small>
+                                </div>
+                            </div>
+                            <span class="badge 
+                                {% if r.transaction_type == 'income' %}bg-success
+                                {% else %}bg-danger{% endif %} compact-badge">
+                                {{ r.transaction_type|title }}
+                            </span>
+                        </div>
+                        
+                        <!-- Amount -->
+                        <div class="mb-2">
+                            <h5 class="mb-0 
+                                {% if r.transaction_type == 'income' %}text-success
+                                {% else %}text-danger{% endif %}">
+                                KSh{{ (r.amount|float)|round(2) }}
+                            </h5>
+                        </div>
+                        
+                        <!-- Description -->
+                        <p class="card-text text-muted small mb-3 compact-desc">
+                            {{ r.description[:50] }}{% if r.description|length > 50 %}...{% endif %}
+                        </p>
+                        
+                        <!-- Actions -->
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <small class="text-muted">F-{{ r.id }}</small>
+                            <div class="btn-group">
+                                <a href="{{ url_for('view_financial', record_id=r.id) }}" 
+                                   class="btn btn-xs btn-outline-info py-1 px-2">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('edit_financial', record_id=r.id) }}" 
+                                   class="btn btn-xs btn-outline-warning py-1 px-2">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                {% if current_user.role in ['admin','manager'] %}
+                                <form method="POST" action="/financial/{{ r.id }}/delete" style="display:inline;" id="del-fin-{{ r.id }}">
+                                    <button type="button" class="btn btn-xs btn-outline-danger py-1 px-2"
+                                            onclick="if(confirm('Delete transaction F-{{ r.id }} ({{ r.category }}, {{ r.amount }})? This cannot be undone.')) document.getElementById('del-fin-{{ r.id }}').submit();">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <div class="transaction-icon-large bg-success-opacity-10 text-success mx-auto mb-3">
+                        <i class="fas fa-chart-line fa-3x"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No Financial Records</h4>
+                    <p class="text-muted mb-4">Start tracking your farm's financial performance</p>
+                    <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#addFinancialModal">
+                        <i class="fas fa-plus me-2"></i> Add First Transaction
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Table View (Initially Hidden) -->
+    <div class="table-responsive d-none" id="tableView">
+        <table class="table table-hover table-sm">
+            <thead class="table-success">
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                {% if financial_records %}
+                    {% for r in financial_records %}
+                    <tr class="transaction-row" 
+                        data-type="{{ r.transaction_type }}"
+                        data-category="{{ r.category|lower }}"
+                        data-amount="{{ r.amount|float }}">
+                        <td>
+                            <span class="badge bg-secondary">F-{{ r.id }}</span>
+                        </td>
+                        <td>{{ r.transaction_date or r.created_at }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if r.transaction_type == 'income' %}bg-success
+                                {% else %}bg-danger{% endif %}">
+                                {{ r.transaction_type|title }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ r.category }}</strong>
+                        </td>
+                        <td>
+                            <span class="fw-bold 
+                                {% if r.transaction_type == 'income' %}text-success
+                                {% else %}text-danger{% endif %}">
+                                KSh{{ (r.amount|float)|round(2) }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 150px;" title="{{ r.description }}">
+                                {{ r.description }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a class="btn btn-info btn-sm" href="{{ url_for('view_financial', record_id=r.id) }}">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a class="btn btn-warning btn-sm" href="{{ url_for('edit_financial', record_id=r.id) }}">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                {% if current_user.role in ['admin','manager'] %}
+                                <form method="POST" action="/financial/{{ r.id }}/delete" id="del-fin-table-{{ r.id }}" style="display:inline;">
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                            onclick="if(confirm('Delete transaction F-{{ r.id }} ({{ r.category }}, {{ r.amount }})? This cannot be undone.')) document.getElementById('del-fin-table-{{ r.id }}').submit();">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No financial records found</h5>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if financial_records %}
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <small class="text-muted">Showing {{ financial_records|length }} transaction{% if financial_records|length != 1 %}s{% endif %}</small>
+        </div>
+        <div class="col-md-6 text-end">
+            <small class="text-muted">
+                <span class="badge bg-success me-2">Income</span>
+                <span class="badge bg-danger">Expense</span>
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Enhanced Add Financial Modal -->
+<div class="modal fade" id="addFinancialModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Add Transaction</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_financial') }}">
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Record all financial transactions to maintain accurate farm accounting. All fields marked with * are required.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Transaction Type *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-exchange-alt"></i></span>
+                                <select name="type" class="form-select" id="transactionType">
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                            <small class="text-muted">Select income or expense</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Amount *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-coins"></i></span>
+                                <input name="amount" type="number" step="0.01" class="form-control" required placeholder="0.00">
+                            </div>
+                            <small class="text-muted">Transaction amount (KSh)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Date *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                <input name="transaction_date" type="date" class="form-control" required>
+                            </div>
+                            <small class="text-muted">Transaction date</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Category *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                            <input name="category" class="form-control" required placeholder="e.g., Sales, Supplies, Wages">
+                        </div>
+                        <small class="text-muted">Transaction category</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-align-left"></i></span>
+                            <input name="description" class="form-control" required placeholder="e.g., Sale of milk to ABC Company">
+                        </div>
+                        <small class="text-muted">Detailed description of transaction</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Reference Number</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
+                            <input name="reference" class="form-control" placeholder="e.g., Invoice #1234, Receipt #5678">
+                        </div>
+                        <small class="text-muted">Optional reference for tracking</small>
+                    </div>
+                    
+                    <!-- Payment Method (Optional) -->
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-credit-card"></i></span>
+                            <select name="payment_method" class="form-select">
+                                <option value="">Select method</option>
+                                <option value="cash">Cash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="check">Check</option>
+                                <option value="card">Credit/Debit Card</option>
+                                <option value="mobile">Mobile Payment</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        <label class="form-label">Additional Notes</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-sticky-note"></i></span>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Any additional information about this transaction..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+                    <button class="btn btn-success" type="submit">
+                        <i class="fas fa-save me-2"></i>Save Transaction
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root{
+        --danger-500: #f19216; /* existing color left untouched */
+        --danger-100: rgba(111,66,193,0.08);
+        --danger-50: rgba(111,66,193,0.05);
+    }
+
+    /* Existing danger overrides (kept as before) */
+    .bg-danger { background-color: var(--danger-500) !important; color: #fff !important; }
+    .text-danger { color: var(--danger-500) !important; }
+    .border-danger { border-color: var(--danger-500) !important; }
+    .bg-danger-opacity-10 { background-color: var(--danger-100) !important; }
+    .btn-danger { background-color: var(--danger-500) !important; border-color: var(--danger-500) !important; color: #fff !important; }
+    .badge.bg-danger { color: #fff !important; }
+
+    .bg-danger-opacity-5 { background-color: var(--danger-50) !important; }
+
+    /* ---------- Compact Financial Records Styling ---------- */
+    /* Compact transaction cards */
+    .transaction-card .card {
+        transition: all 0.2s ease;
+    }
+    
+    .transaction-card .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .transaction-card .transaction-icon-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    
+    .transaction-card .compact-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    
+    .transaction-card .compact-subtitle {
+        font-size: 0.7rem;
+        color: #6c757d;
+    }
+    
+    .transaction-card .compact-desc {
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.3;
+        max-height: 2.6em;
+        overflow: hidden;
+    }
+    
+    .transaction-card .compact-badge {
+        padding: 0.15rem 0.35rem;
+        font-size: 0.65rem;
+        border-radius: 4px;
+    }
+    
+    .transaction-card h5 {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .transaction-card .btn-group .btn-xs {
+        padding: 0.15rem 0.35rem;
+        font-size: 0.7rem;
+    }
+    
+    /* Table view compact */
+    .table-sm th,
+    .table-sm td {
+        padding: 0.5rem !important;
+        font-size: 0.85rem;
+    }
+    
+    .table-sm .btn-group-sm .btn {
+        padding: 0.15rem 0.35rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Print styles */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        .content-card,
+        .content-card * {
+            visibility: visible;
+        }
+        .content-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            box-shadow: none !important;
+            border: none !important;
+        }
+        .btn, #toggleViewBtn, #printBtn, #searchInput, .btn-group,
+        .input-group, .badge.bg-secondary, .d-flex.justify-content-between.align-items-center.mb-4 {
+            display: none !important;
+        }
+        .table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .table th {
+            background-color: #f8f9fa !important;
+            color: #000 !important;
+        }
+        h4.mb-0, p.text-muted.mb-0 {
+            margin-bottom: 10px !important;
+        }
+    }
+
+    /* Ensure proper spacing for compact layout */
+    .transaction-card:hover .card {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Better grid for more cards */
+    @media (min-width: 1200px) {
+        .col-xl-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+    }
+    
+    @media (min-width: 992px) and (max-width: 1199px) {
+        .col-lg-4 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+        }
+    }
+    
+    @media (min-width: 768px) and (max-width: 991px) {
+        .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+
+    /* other existing styles kept unchanged */
+    .content-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+    .transaction-icon-large { width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+    .border-start { border-left-width: 4px !important; }
+    .bg-success-opacity-10 { background-color: rgba(25, 135, 84, 0.1) !important; }
+    .bg-primary-opacity-10 { background-color: rgba(13, 110, 253, 0.1) !important; }
+    .bg-warning-opacity-10 { background-color: rgba(255, 193, 7, 0.1) !important; }
+    .transaction-row:hover { background-color: rgba(25, 135, 84, 0.05) !important; cursor: pointer; }
+</style>
+
+<script>
+    // Print functionality
+    document.getElementById('printBtn')?.addEventListener('click', function() {
+        // Get the current view
+        const cardView = document.getElementById('cardView');
+        const tableView = document.getElementById('tableView');
+        
+        // Create a print-friendly version
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Financial Transactions Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { color: #198754; margin-bottom: 5px; }
+                        .subtitle { color: #6c757d; margin-bottom: 20px; }
+                        .print-meta { margin-bottom: 20px; font-size: 0.9em; color: #495057; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th { background-color: #198754; color: white; padding: 10px; text-align: left; }
+                        td { padding: 8px; border-bottom: 1px solid #ddd; }
+                        .income { color: #198754; }
+                        .expense { color: #dc3545; }
+                        .summary { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                        .summary-item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+                        .page-break { page-break-before: always; }
+                        @media print {
+                            body { margin: 0; padding: 10px; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Financial Transactions Report</h1>
+                    <div class="subtitle">Farm Financial Records - Generated on ${new Date().toLocaleDateString()}</div>
+                    
+                    <div class="summary">
+                        <div class="summary-item">
+                            <span>Total Income:</span>
+                            <strong>KSh{{ (total_income|float)|round(2) }}</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Total Expenses:</span>
+                            <strong>KSh{{ (total_expense|float)|round(2) }}</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Net Profit:</span>
+                            <strong>KSh{{ (net_profit|float)|round(2) }}</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Total Transactions:</span>
+                            <strong>{{ financial_records|length }}</strong>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in financial_records %}
+                            <tr>
+                                <td>F-{{ r.id }}</td>
+                                <td>{{ r.transaction_date or r.created_at }}</td>
+                                <td>{{ r.transaction_type|title }}</td>
+                                <td>{{ r.category }}</td>
+                                <td class="{{ r.transaction_type }}">KSh{{ (r.amount|float)|round(2) }}</td>
+                                <td>{{ r.description }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <div class="print-meta" style="margin-top: 30px; font-size: 0.8em; color: #6c757d; text-align: center;">
+                        Generated by Farm Management System • ${new Date().toLocaleString()}
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Wait for content to load then print
+        setTimeout(() => {
+            printWindow.print();
+            // printWindow.close(); // Uncomment if you want to close after printing
+        }, 250);
+    });
+
+    // Toggle View + filters + search + behaviors
+    document.getElementById('toggleViewBtn')?.addEventListener('click', function() {
+        const cardView = document.getElementById('cardView');
+        const tableView = document.getElementById('tableView');
+        const button = this;
+        if (cardView.classList.contains('d-none')) {
+            cardView.classList.remove('d-none'); tableView.classList.add('d-none');
+            button.innerHTML = '<i class="fas fa-table me-2"></i>Toggle Table View';
+        } else {
+            cardView.classList.add('d-none'); tableView.classList.remove('d-none');
+            button.innerHTML = '<i class="fas fa-th-large me-2"></i>Toggle Card View';
+        }
+    });
+
+    // Filter & search code
+    document.getElementById('filterAll')?.addEventListener('click', function() { setActiveFilter(this); showAllTransactions(); });
+    document.getElementById('filterIncome')?.addEventListener('click', function() { setActiveFilter(this); filterByType('income'); });
+    document.getElementById('filterExpense')?.addEventListener('click', function() { setActiveFilter(this); filterByType('expense'); });
+    document.getElementById('filterRecent')?.addEventListener('click', function() { setActiveFilter(this); filterRecentTransactions(); });
+
+    function setActiveFilter(button) {
+        document.querySelectorAll('#filterAll, #filterIncome, #filterExpense, #filterRecent').forEach(btn => {
+            btn.classList.remove('active'); btn.classList.remove('btn-success','btn-danger','btn-primary');
+            btn.classList.add('btn-outline-success');
+        });
+        button.classList.add('active');
+        if (button.id === 'filterIncome') button.classList.add('btn-success');
+        else if (button.id === 'filterExpense') button.classList.add('btn-danger');
+        else if (button.id === 'filterRecent') button.classList.add('btn-primary');
+        else button.classList.add('btn-success');
+    }
+
+    function filterByType(type) {
+        const cards = document.querySelectorAll('.transaction-card'); cards.forEach(card => { card.style.display = card.getAttribute('data-type') === type ? '' : 'none'; });
+        const rows = document.querySelectorAll('.transaction-row'); rows.forEach(row => { row.style.display = row.getAttribute('data-type') === type ? '' : 'none'; });
+    }
+
+    function filterRecentTransactions() {
+        const today = new Date(); const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const oneWeekAgoStr = oneWeekAgo.toISOString().split('T')[0];
+        document.querySelectorAll('.transaction-card').forEach(card => { card.style.display = card.getAttribute('data-date') >= oneWeekAgoStr ? '' : 'none'; });
+        document.querySelectorAll('.transaction-row').forEach(row => { const rowDate = row.querySelector('td:nth-child(2)')?.textContent.trim(); row.style.display = (rowDate >= oneWeekAgoStr) ? '' : 'none'; });
+    }
+
+    function showAllTransactions() {
+        document.querySelectorAll('.transaction-card').forEach(card => card.style.display = '');
+        document.querySelectorAll('.transaction-row').forEach(row => row.style.display = '');
+    }
+
+    const searchInput = document.getElementById('searchInput'); const clearSearchBtn = document.getElementById('clearSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.transaction-card').forEach(card => { card.style.display = card.textContent.toLowerCase().includes(term) ? '' : 'none'; });
+            document.querySelectorAll('.transaction-row').forEach(row => { row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none'; });
+        });
+    }
+    if (clearSearchBtn) clearSearchBtn.addEventListener('click', function() { if (searchInput) searchInput.value = ''; showAllTransactions(); });
+
+    // Row click -> view
+    document.querySelectorAll('.transaction-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('a') || e.target.closest('button')) return;
+            const viewBtn = this.querySelector('a[href*="view_financial"]'); if (viewBtn) viewBtn.click();
+        });
+    });
+
+    // Init date field
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.querySelector('input[name="transaction_date"]'); if (dateInput && !dateInput.value) dateInput.value = today;
+        const transactionTypeSelect = document.getElementById('transactionType');
+        if (transactionTypeSelect) {
+            transactionTypeSelect.addEventListener('change', function() {
+                const modalHeader = document.querySelector('#addFinancialModal .modal-header');
+                if (this.value === 'income') { modalHeader.classList.remove('bg-danger'); modalHeader.classList.add('bg-success'); }
+                else { modalHeader.classList.remove('bg-success'); modalHeader.classList.add('bg-danger'); }
+            });
+        }
+    });
+</script>
+{% endblock %}

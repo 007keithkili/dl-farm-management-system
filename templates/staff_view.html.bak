@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}View Staff{% endblock %}
+{% block page_title %}Staff Details{% endblock %}
+{% block page_subtitle %}View staff member details{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4>Staff Details — STF-{{ staff.id }}</h4>
+        <div>
+            <a href="{{ url_for('edit_staff', staff_id=staff.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{{ url_for('staff') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Directory
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <dl class="row">
+                <dt class="col-sm-4">ID No</dt>
+                <dd class="col-sm-8">{{ staff.id_number or 'N/A' }}</dd>
+
+                <dt class="col-sm-4">First name</dt>
+                <dd class="col-sm-8">{{ staff.first_name }}</dd>
+
+                <dt class="col-sm-4">Last name</dt>
+                <dd class="col-sm-8">{{ staff.last_name }}</dd>
+
+                <dt class="col-sm-4">Position</dt>
+                <dd class="col-sm-8">{{ staff.position }}</dd>
+
+                <dt class="col-sm-4">Department</dt>
+                <dd class="col-sm-8">{{ staff.department or 'N/A' }}</dd>
+
+                <dt class="col-sm-4">Phone</dt>
+                <dd class="col-sm-8">{{ staff.phone }}</dd>
+
+                <dt class="col-sm-4">Email</dt>
+                <dd class="col-sm-8">{{ staff.email or 'N/A' }}</dd>
+            </dl>
+        </div>
+
+        <div class="col-md-6">
+            <dl class="row">
+                <dt class="col-sm-4">Address</dt>
+                <dd class="col-sm-8">{{ staff.address or 'N/A' }}</dd>
+
+                <dt class="col-sm-4">Date of birth</dt>
+                <dd class="col-sm-8">{{ staff.dob or 'N/A' }}</dd>
+
+                <dt class="col-sm-4">Date employed</dt>
+                <dd class="col-sm-8">{{ staff.date_employed or 'N/A' }}</dd>
+
+                <dt class="col-sm-4">Status</dt>
+                <dd class="col-sm-8">{{ staff.status or 'Active' }}</dd>
+
+                <dt class="col-sm-4">Created At</dt>
+                <dd class="col-sm-8">{{ staff.created_at }}</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+{% endblock %}

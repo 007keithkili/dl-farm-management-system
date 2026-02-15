@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Edit Task{% endblock %}
 {% block page_title %}Edit Task{% endblock %}
 {% block page_subtitle %}Update task details{% endblock %}
@@ -18,18 +18,34 @@
 
     <div class="mb-3">
       <label class="form-label">Description</label>
-      <textarea name="description" class="form-control" rows="4">{{ task.description }}</textarea>
+      <textarea name="description" class="form-control" rows="4">{{ task.description or '' }}</textarea>
     </div>
 
     <div class="row">
       <div class="col-md-4 mb-3">
         <label class="form-label">Assigned To</label>
-        <input name="assigned_to" class="form-control" value="{{ task.assigned_to or '' }}">
+
+        {# This select pre-selects when task.assigned_to is either the staff id OR the full name (covers old tasks) #}
+        <select name="assigned_to" class="form-select">
+          <option value="">-- Unassigned --</option>
+          {% set assigned = task.assigned_to|string %}
+          {% for s in staff_members %}
+            {% set sid = s.id|string %}
+            {% set fullname = s.first_name ~ ' ' ~ s.last_name %}
+            <option value="{{ sid }}"
+              {% if assigned == sid or assigned == fullname %}selected{% endif %}>
+              {{ fullname }}
+            </option>
+          {% endfor %}
+        </select>
+
       </div>
+
       <div class="col-md-4 mb-3">
         <label class="form-label">Due Date</label>
-        <input name="due_date" type="date" class="form-control" value="{{ task.due_date }}">
+        <input name="due_date" type="date" class="form-control" value="{{ task.due_date or '' }}">
       </div>
+
       <div class="col-md-4 mb-3">
         <label class="form-label">Category</label>
         <input name="category" class="form-control" value="{{ task.category or '' }}">
@@ -62,4 +78,29 @@
     </div>
   </form>
 </div>
+<button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+  <i class="fas fa-trash-alt"></i> Delete
+</button>
+<!-- Confirm Delete Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Delete</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to permanently delete task <strong>T-{{ task.id }}</strong> — <em>{{ task.title }}</em>?</p>
+          <p class="text-danger">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Yes, delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

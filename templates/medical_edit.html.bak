@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Medical Record{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="mb-0">Edit Medical Record</h4>
+      <p class="text-muted mb-0">Modify the details of this medical entry.</p>
+    </div>
+    <div>
+      {# Changed Cancel from url_for('medical') to a client-side history.back() to avoid BuildError when endpoint name is unknown #}
+      <button type="button" class="btn btn-secondary me-2" onclick="window.history.back();">Cancel</button>
+      <a class="btn btn-primary" href="#" id="saveDraftBtn">Save</a>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('edit_medical', medical_id=record.id) }}">
+    {% if csrf_token is defined %}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Animal ID</label>
+        <input name="animal_id" class="form-control" value="{{ record.animal_id or '' }}" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Treatment Date</label>
+        <input name="treatment_date" type="date" class="form-control" value="{{ record.treatment_date or '' }}" required>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Condition</label>
+      <input name="condition" class="form-control" value="{{ record.condition or '' }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Treatment</label>
+      <input name="treatment" class="form-control" value="{{ record.treatment or '' }}" required>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Veterinarian</label>
+        <input name="veterinarian" class="form-control" value="{{ record.veterinarian or '' }}">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Next Checkup</label>
+        <input name="next_checkup" type="date" class="form-control" value="{{ record.next_checkup or '' }}">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="4">{{ record.notes or '' }}</textarea>
+    </div>
+
+    <div class="d-flex justify-content-end">
+      <button type="button" class="btn btn-secondary me-2" onclick="window.history.back();">Cancel</button>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

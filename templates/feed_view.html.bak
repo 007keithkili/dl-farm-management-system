@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Feed Record{% endblock %}
+{% block page_title %}Feed Record{% endblock %}
+{% block page_subtitle %}Feed details{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Feed F-{{ record.id }}</h4>
+    <div>
+      <a class="btn btn-warning" href="{{ url_for('edit_feed', feed_id=record.id) }}"><i class="fas fa-edit"></i> Edit</a>
+      <a class="btn btn-secondary" href="{{ url_for('feed') }}">Back</a>
+    </div>
+  </div>
+
+  <dl class="row">
+    <dt class="col-sm-3">Feed Type</dt><dd class="col-sm-9">{{ record.feed_type }}</dd>
+    <dt class="col-sm-3">Quantity</dt><dd class="col-sm-9">{{ record.quantity }}</dd>
+    <dt class="col-sm-3">Animal Group</dt><dd class="col-sm-9">{{ record.animal_group or '-' }}</dd>
+    <dt class="col-sm-3">Feeding Time</dt><dd class="col-sm-9">{{ record.feeding_time or '-' }}</dd>
+    <dt class="col-sm-3">Notes</dt><dd class="col-sm-9">{{ record.notes or '-' }}</dd>
+    <dt class="col-sm-3">Created At</dt><dd class="col-sm-9">{{ record.created_at }}</dd>
+  </dl>
+</div>
+{% endblock %}

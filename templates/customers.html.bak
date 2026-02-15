@@ -1,0 +1,766 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block page_title %}Customers{% endblock %}
+{% block page_subtitle %}Customer list and contact information{% endblock %}
+
+{% block content %}
+<!-- Welcome & Overview Section -->
+<div class="content-card mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h4 class="mb-3"><i class="fas fa-address-book text-primary me-2"></i>Customer Relationship Portal</h4>
+            <p class="text-muted mb-3">
+                Manage all customer interactions, contact details, and business relationships in one centralized platform. 
+                Track customer types, maintain communication logs, and build lasting partnerships.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                    <i class="fas fa-users me-1"></i>Customer Directory
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                    <i class="fas fa-handshake me-1"></i>Relationship Management
+                </span>
+                <span class="badge bg-info bg-opacity-10 text-info border border-info">
+                    <i class="fas fa-chart-network me-1"></i>Customer Insights
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                    <i class="fas fa-bullseye me-1"></i>Target Groups
+                </span>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="card border-primary">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-user-plus fa-2x text-primary mb-2"></i>
+                    <h6 class="mb-1">Quick Start</h6>
+                    <small class="text-muted d-block mb-2">Add customers or analyze relationships</small>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                        <i class="fas fa-plus me-1"></i>New Customer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Customer Dashboard -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-primary bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Customers</h6>
+                        <h2 class="mb-0">{{ total_customers }}</h2>
+                    </div>
+                    <i class="fas fa-user-friends fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">All customer records</small>
+            </div>
+        </div>
+    </div>
+
+    {# Use selectattr+list to produce reliable lists for counts #}
+    {% if customers %}
+        {% set retail_list = customers | selectattr('customer_type', 'equalto', 'retail') | list %}
+        {% set wholesale_list = customers | selectattr('customer_type', 'equalto', 'wholesale') | list %}
+        {% set company_list = customers | selectattr('company') | list %}
+    {% else %}
+        {% set retail_list = [] %}
+        {% set wholesale_list = [] %}
+        {% set company_list = [] %}
+    {% endif %}
+
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-success bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Retail Customers</h6>
+                        <h2 class="mb-0">{{ retail_list|length }}</h2>
+                    </div>
+                    <i class="fas fa-user fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Individual buyers</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-info bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Business Clients</h6>
+                        <h2 class="mb-0">{{ wholesale_list|length }}</h2>
+                    </div>
+                    <i class="fas fa-building fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Wholesale accounts</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-warning bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Company Linked</h6>
+                        <h2 class="mb-0">{{ company_list|length }}</h2>
+                    </div>
+                    <i class="fas fa-briefcase fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">With company info</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Analytics & Distribution -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <!-- Customer Type Distribution -->
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-chart-pie text-primary me-2"></i> Customer Distribution</h5>
+                <small class="text-muted">Customer type breakdown</small>
+            </div>
+            
+            {% if customers %}
+                {% set total = (total_customers if total_customers is defined else (customers|length)) | int %}
+                {% set retail_pct = (retail_list|length / total * 100) if total > 0 else 0 %}
+                {% set wholesale_pct = (wholesale_list|length / total * 100) if total > 0 else 0 %}
+
+                <div class="row align-items-center">
+                    <div class="col-md-5">
+                        <!-- Visual Chart Representation -->
+                        <div class="position-relative" style="height: 200px;">
+                            <div class="position-absolute top-50 start-50 translate-middle">
+                                <div class="donut-chart mx-auto" style="--retail: {{ retail_pct }}; --wholesale: {{ wholesale_pct }};">
+                                    <div class="donut-segment retail" 
+                                         style="--percentage: {{ retail_pct }}%; --color: #0d6efd;">
+                                    </div>
+                                    <div class="donut-segment wholesale" 
+                                         style="--percentage: {{ wholesale_pct }}%; --color: #0dcaf0;">
+                                    </div>
+                                    <div class="donut-center">
+                                        <h4 class="mb-0">{{ total }}</h4>
+                                        <small class="text-muted">Total</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-7">
+                        <!-- Detailed Breakdown -->
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item border-0 px-0 py-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-primary me-3" style="width: 15px; height: 15px;"></span>
+                                        <div>
+                                            <h6 class="mb-1">Retail Customers</h6>
+                                            <small class="text-muted">Individual consumers</small>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <h5 class="mb-0">{{ retail_list|length }}</h5>
+                                        <small class="text-muted">{{ retail_pct|round(1) }}%</small>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" style="width: {{ retail_pct }}%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="list-group-item border-0 px-0 py-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-info me-3" style="width: 15px; height: 15px;"></span>
+                                        <div>
+                                            <h6 class="mb-1">Wholesale Clients</h6>
+                                            <small class="text-muted">Business accounts</small>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <h5 class="mb-0">{{ wholesale_list|length }}</h5>
+                                        <small class="text-muted">{{ wholesale_pct|round(1) }}%</small>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar bg-info" style="width: {{ wholesale_pct }}%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No customer data</h5>
+                    <p class="text-muted mb-0">Add customers to see distribution analytics</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Contact Information & Quick Stats -->
+        <div class="content-card h-100">
+            <h5 class="mb-3"><i class="fas fa-id-card text-success me-2"></i> Contact Completeness</h5>
+            
+            {% if customers %}
+                {% set with_email = customers | selectattr('email') | list %}
+                {% set with_address = customers | selectattr('address') | list %}
+                {% set total_for_metrics = (total_customers if total_customers is defined else (customers|length)) | int %}
+                
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small">Email Addresses</span>
+                        <small class="text-muted">{{ with_email|length }}/{{ total_for_metrics }}</small>
+                    </div>
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-success" 
+                             style="width: {{ (with_email|length / total_for_metrics * 100) if total_for_metrics > 0 else 0 }}%;">
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small">Address Information</span>
+                        <small class="text-muted">{{ with_address|length }}/{{ total_for_metrics }}</small>
+                    </div>
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-warning" 
+                             style="width: {{ (with_address|length / total_for_metrics * 100) if total_for_metrics > 0 else 0 }}%;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Insights -->
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="text-muted mb-3"><i class="fas fa-lightbulb text-info me-2"></i> Quick Insights</h6>
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="p-2">
+                                <i class="fas fa-phone fa-lg text-primary mb-2"></i>
+                                <h5 class="mb-1">{{ total_for_metrics }}</h5>
+                                <small class="text-muted">All have phone</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="p-2">
+                                <i class="fas fa-envelope fa-lg text-success mb-2"></i>
+                                <h5 class="mb-1">{{ with_email|length }}</h5>
+                                <small class="text-muted">Email available</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Additions -->
+                <div class="mt-3 pt-3 border-top">
+                    <h6 class="text-muted mb-3"><i class="fas fa-history text-primary me-2"></i> Recent Additions</h6>
+                    {% set recent_customers = (customers | sort(attribute='id', reverse=True))[:3] %}
+                    <div class="list-group list-group-flush">
+                        {% for customer in recent_customers %}
+                            <div class="list-group-item border-0 px-0 py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="d-flex align-items-center mb-1">
+                                            <div class="customer-avatar-sm bg-{{ 'primary' if customer.customer_type == 'retail' else 'info' }}-opacity-10 text-{{ 'primary' if customer.customer_type == 'retail' else 'info' }} me-2">
+                                                {{ customer.customer_name[0]|upper }}
+                                            </div>
+                                            <strong>{{ customer.customer_name[:15] }}{% if customer.customer_name|length > 15 %}...{% endif %}</strong>
+                                        </div>
+                                        <small class="text-muted">{{ customer.customer_type|title }}</small>
+                                    </div>
+                                    <small class="text-muted">C-{{ customer.id }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-id-card fa-2x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No contact data available</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Customer Directory -->
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0">Customer Directory</h4>
+            <p class="text-muted mb-0">Complete customer database. Click any customer to view full details.</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+            <i class="fas fa-user-plus me-2"></i> Add Customer
+        </button>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <div class="btn-group btn-group-sm me-3" role="group">
+                    <button type="button" class="btn btn-outline-primary active" id="filterAll">All</button>
+                    <button type="button" class="btn btn-outline-primary" id="filterRetail">Retail</button>
+                    <button type="button" class="btn btn-outline-primary" id="filterWholesale">Wholesale</button>
+                </div>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-success" id="filterWithEmail">With Email</button>
+                    <button type="button" class="btn btn-outline-warning" id="filterWithCompany">With Company</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search customers..." id="searchInput">
+                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Cards Grid -->
+    <div class="row" id="customerGrid">
+        {% if customers %}
+            {% for c in customers %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4 customer-card" 
+                 data-type="{{ c.customer_type }}"
+                 data-name="{{ c.customer_name|lower }}"
+                 data-company="{{ c.company|default('')|lower }}"
+                 data-email="{{ 'true' if c.email else 'false' }}">
+                <div class="card h-100 border-start border-4 border-{{ 'primary' if c.customer_type == 'retail' else 'info' }}">
+                    <div class="card-body">
+                        <!-- Customer Header -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="customer-avatar bg-{{ 'primary' if c.customer_type == 'retail' else 'info' }}-opacity-10 text-{{ 'primary' if c.customer_type == 'retail' else 'info' }}">
+                                {{ c.customer_name[0]|upper }}
+                            </div>
+                            <span class="badge bg-{{ 'primary' if c.customer_type == 'retail' else 'info' }}">
+                                {{ c.customer_type|title }}
+                            </span>
+                        </div>
+                        
+                        <!-- Customer Info -->
+                        <h6 class="card-title mb-2">{{ c.customer_name }}</h6>
+                        
+                        {% if c.company %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-building text-muted me-2"></i>
+                            <small class="text-muted">{{ c.company }}</small>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-phone text-success me-2"></i>
+                            <small>{{ c.phone }}</small>
+                        </div>
+                        
+                        <!-- Contact Status -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                {% if c.email %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                                    <i class="fas fa-envelope me-1"></i>Email
+                                </span>
+                                {% endif %}
+                                
+                                {% if c.address %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                                    <i class="fas fa-map-marker-alt me-1"></i>Address
+                                </span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">C-{{ c.id }}</small>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('view_customer', customer_id=c.id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>View
+                            </a>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('edit_customer', customer_id=c.id) }}" 
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-edit me-1"></i>Edit
+                                </a>
+
+                                {% if current_user.role in ['admin','manager'] %}
+                                <form id="delete-customer-{{ c.id }}-form" method="POST" action="{{ url_for('delete_customer', customer_id=c.id) }}" style="display:inline;">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" title="Delete customer"
+                                            onclick="if(confirm('Delete customer C-{{ c.id }} ({{ c.customer_name }})? This cannot be undone.')) document.getElementById('delete-customer-{{ c.id }}-form').submit();">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <div class="customer-avatar-large bg-primary-opacity-10 text-primary mx-auto mb-3">
+                        <i class="fas fa-users fa-3x"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No Customers Found</h4>
+                    <p class="text-muted mb-4">Start building your customer database by adding your first customer</p>
+                    <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                        <i class="fas fa-user-plus me-2"></i> Add First Customer
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Alternative Table View (Collapsible) -->
+    {% if customers %}
+    <div class="mt-4">
+        <button class="btn btn-sm btn-outline-secondary w-100 mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#tableView">
+            <i class="fas fa-table me-2"></i>Toggle Table View
+        </button>
+        
+        <div class="collapse" id="tableView">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Company</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in customers %}
+                        <tr>
+                            <td><span class="badge bg-secondary">C-{{ c.id }}</span></td>
+                            <td><strong>{{ c.customer_name }}</strong></td>
+                            <td>{{ c.company or '—' }}</td>
+                            <td>{{ c.phone }}</td>
+                            <td>
+                                {% if c.email %}
+                                <span class="badge bg-success bg-opacity-10 text-success">{{ c.email }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'primary' if c.customer_type == 'retail' else 'info' }}">
+                                    {{ c.customer_type|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a class="btn btn-info" href="{{ url_for('view_customer', customer_id=c.id) }}">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a class="btn btn-warning" href="{{ url_for('edit_customer', customer_id=c.id) }}">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+
+                                    {% if current_user.role in ['admin','manager'] %}
+                                    <form id="delete-customer-table-{{ c.id }}-form" method="POST" action="{{ url_for('delete_customer', customer_id=c.id) }}" style="display:inline;">
+                                        <button type="button" class="btn btn-danger" title="Delete"
+                                                onclick="if(confirm('Delete customer C-{{ c.id }} ({{ c.customer_name }})? This cannot be undone.')) document.getElementById('delete-customer-table-{{ c.id }}-form').submit();">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Enhanced Add Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add New Customer</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_customer') }}">
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Complete customer profile for better relationship management. All fields marked with * are required.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Customer Name *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input name="customer_name" class="form-control" required placeholder="Full name">
+                            </div>
+                            <small class="text-muted">Enter full customer name</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone Number *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input name="phone" class="form-control" required placeholder="Phone number">
+                            </div>
+                            <small class="text-muted">Primary contact number</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Company Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-building"></i></span>
+                            <input name="company" class="form-control" placeholder="Company/organization">
+                        </div>
+                        <small class="text-muted">Optional for retail customers</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input name="email" type="email" class="form-control" placeholder="email@example.com">
+                        </div>
+                        <small class="text-muted">For invoices and communications</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Physical Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                            <textarea name="address" class="form-control" rows="2" placeholder="Street, City, Country"></textarea>
+                        </div>
+                        <small class="text-muted">Delivery and billing address</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Customer Type</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                <select name="customer_type" class="form-select">
+                                    <option value="retail" selected>Retail Customer</option>
+                                    <option value="wholesale">Wholesale Client</option>
+                                </select>
+                            </div>
+                            <small class="text-muted">Select appropriate category</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Customer Notes</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-sticky-note"></i></span>
+                                <textarea name="notes" class="form-control" rows="1" placeholder="Additional information"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-save me-2"></i>Save Customer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .content-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+    }
+    .customer-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.5rem;
+    }
+    .customer-avatar-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1rem;
+    }
+    .customer-avatar-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+    }
+    .donut-chart {
+        width: 180px;
+        height: 180px;
+        position: relative;
+        border-radius: 50%;
+        background: conic-gradient(var(--color) 0% var(--percentage), rgba(0,0,0,0.1) var(--percentage) 100%);
+    }
+    .donut-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .customer-card:hover {
+        transform: translateY(-5px);
+        transition: transform 0.2s ease;
+    }
+    .customer-card .card {
+        transition: all 0.2s ease;
+    }
+    .customer-card .card:hover {
+        box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+    .border-start {
+        border-left-width: 4px !important;
+    }
+    .bg-primary-opacity-10 {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+    .bg-success-opacity-10 {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+    }
+    .bg-info-opacity-10 {
+        background-color: rgba(13, 202, 240, 0.1) !important;
+    }
+    .bg-warning-opacity-10 {
+        background-color: rgba(255, 193, 7, 0.1) !important;
+    }
+</style>
+
+<script>
+    // Filter and search code (same logic as before)
+    document.getElementById('filterAll')?.addEventListener('click', function() {
+        setActiveFilter('filterAll');
+        showAllCustomers();
+    });
+    document.getElementById('filterRetail')?.addEventListener('click', function() {
+        setActiveFilter('filterRetail'); filterByType('retail');
+    });
+    document.getElementById('filterWholesale')?.addEventListener('click', function() {
+        setActiveFilter('filterWholesale'); filterByType('wholesale');
+    });
+    document.getElementById('filterWithEmail')?.addEventListener('click', function() {
+        setActiveFilter('filterWithEmail'); filterByEmail(true);
+    });
+    document.getElementById('filterWithCompany')?.addEventListener('click', function() {
+        setActiveFilter('filterWithCompany'); filterByCompany(true);
+    });
+
+    function setActiveFilter(filterId) {
+        const allButtons = ['filterAll','filterRetail','filterWholesale','filterWithEmail','filterWithCompany'];
+        allButtons.forEach(id => {
+            const b = document.getElementById(id);
+            if (!b) return;
+            b.classList.remove('active','btn-primary','btn-success','btn-warning');
+            b.classList.add('btn-outline-primary');
+        });
+        const activeBtn = document.getElementById(filterId);
+        if (!activeBtn) return;
+        activeBtn.classList.add('active');
+        activeBtn.classList.remove('btn-outline-primary');
+        if (filterId.includes('WithEmail')) activeBtn.classList.add('btn-success');
+        else if (filterId.includes('WithCompany')) activeBtn.classList.add('btn-warning');
+        else activeBtn.classList.add('btn-primary');
+    }
+
+    function filterByType(type) {
+        document.querySelectorAll('.customer-card').forEach(card => {
+            card.style.display = (card.getAttribute('data-type') === type) ? '' : 'none';
+        });
+    }
+    function filterByEmail(hasEmail) {
+        document.querySelectorAll('.customer-card').forEach(card => {
+            card.style.display = ((card.getAttribute('data-email') === 'true') === hasEmail) ? '' : 'none';
+        });
+    }
+    function filterByCompany(hasCompany) {
+        document.querySelectorAll('.customer-card').forEach(card => {
+            card.style.display = ((card.getAttribute('data-company') || '') !== '') === hasCompany ? '' : 'none';
+        });
+    }
+    function showAllCustomers() {
+        document.querySelectorAll('.customer-card').forEach(card => card.style.display = '');
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.customer-card').forEach(card => {
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                const company = (card.getAttribute('data-company') || '').toLowerCase();
+                const text = (card.textContent || '').toLowerCase();
+                card.style.display = (name.includes(term) || company.includes(term) || text.includes(term)) ? '' : 'none';
+            });
+        });
+    }
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (searchInput) searchInput.value = '';
+            showAllCustomers();
+        });
+    }
+
+    // Hover + donut small animation
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.customer-card .card').forEach(card => {
+            card.addEventListener('mouseenter', function() { this.style.transform = 'translateY(-5px)'; this.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease'; });
+            card.addEventListener('mouseleave', function() { this.style.transform = 'translateY(0)'; });
+        });
+        const donutSegments = document.querySelectorAll('.donut-segment');
+        donutSegments.forEach(segment => {
+            const percentage = segment.style.getPropertyValue('--percentage') || '0%';
+            segment.style.setProperty('--percentage', '0%');
+            setTimeout(() => { segment.style.transition = 'background 1s ease'; segment.style.setProperty('--percentage', percentage); }, 100);
+        });
+    });
+</script>
+{% endblock %}

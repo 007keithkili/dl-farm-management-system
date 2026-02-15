@@ -1,0 +1,774 @@
+{% extends "base.html" %}
+{% block title %}Sales{% endblock %}
+{% block page_title %}Sales{% endblock %}
+{% block page_subtitle %}Sales records and revenue{% endblock %}
+
+{% block content %}
+<!-- Welcome & Overview Section -->
+<div class="content-card mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h4 class="mb-3"><i class="fas fa-chart-line text-success me-2"></i>Farm Sales & Revenue Management</h4>
+            <p class="text-muted mb-3">
+                This system tracks all farm sales, revenue, customer transactions, and product performance. 
+                Monitor sales trends, analyze revenue growth, and manage customer relationships.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                    <i class="fas fa-money-bill-wave me-1"></i>Revenue Tracking
+                </span>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                    <i class="fas fa-users me-1"></i>Customer Management
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                    <i class="fas fa-box me-1"></i>Product Analytics
+                </span>
+                <span class="badge bg-info bg-opacity-10 text-info border border-info">
+                    <i class="fas fa-calendar-alt me-1"></i>Sales Timeline
+                </span>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="card border-success">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-cash-register fa-2x text-success mb-2"></i>
+                    <h6 class="mb-1">Quick Actions</h6>
+                    <small class="text-muted d-block mb-2">Record sales or analyze performance</small>
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addSaleModal">
+                        <i class="fas fa-plus me-1"></i>Record Sale
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Revenue Dashboard -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-success bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Revenue</h6>
+                        {# convert total_revenue safely to number and format #}
+                        {% set tr = total_revenue|default('0') %}
+                        {% set trnum = tr|string|replace('Ksh','')|replace('$','')|replace(',','')|float(0) %}
+                        <h2 class="mb-0">Ksh {{ "{:,.2f}".format(trnum) }}</h2>
+                    </div>
+                    <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">All-time earnings</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-primary bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Sales</h6>
+                        <h2 class="mb-0">{{ total_sales|default( (sales|length) if sales is defined else 0 ) }}</h2>
+                    </div>
+                    <i class="fas fa-shopping-basket fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Number of transactions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-info bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Avg. Sale Value</h6>
+                        {% set ts = total_sales|default( (sales|length) if sales is defined else 0 )|int %}
+                        {% if ts > 0 %}
+                            {% set avg = (trnum / ts) %}
+                        {% else %}
+                            {% set avg = 0 %}
+                        {% endif %}
+                        <h2 class="mb-0">Ksh {{ "{:,.2f}".format(avg) }}</h2>
+                    </div>
+                    <i class="fas fa-calculator fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Per transaction</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-warning bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Top Products</h6>
+                        <h2 class="mb-0">
+                            {% if sales %}
+                                {% set products = {} %}
+                                {% for sale in sales %}
+                                    {% set product = sale.product or 'Unknown' %}
+                                    {% if product in products %}
+                                        {% set _ = products.update({product: products[product] + 1}) %}
+                                    {% else %}
+                                        {% set _ = products.update({product: 1}) %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ products|length }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </h2>
+                    </div>
+                    <i class="fas fa-star fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Different products sold</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Performance & Quick Stats -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <!-- Top Products & Customers -->
+        <div class="content-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-trophy text-warning me-2"></i> Sales Performance</h5>
+                <small class="text-muted">Top performers</small>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3"><i class="fas fa-box text-primary me-2"></i> Top Products</h6>
+                    {% if sales %}
+                        {% set product_counts = {} %}
+                        {% set product_revenue = {} %}
+                        {% for sale in sales %}
+                            {% set product = sale.product or 'Unknown' %}
+                            {% set revenue = sale.total_amount|default('0')|string|replace('Ksh','')|replace('$','')|replace(',','')|float %}
+                            
+                            {% if product in product_counts %}
+                                {% set _ = product_counts.update({product: product_counts[product] + 1}) %}
+                                {% set _ = product_revenue.update({product: (product_revenue[product] + revenue)}) %}
+                            {% else %}
+                                {% set _ = product_counts.update({product: 1}) %}
+                                {% set _ = product_revenue.update({product: revenue}) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% set sorted_products = product_counts.items()|sort(attribute='1', reverse=True) %}
+                        {% for product, count in sorted_products[:4] %}
+                            <div class="list-group list-group-flush mb-2">
+                                <div class="list-group-item border-0 px-0 py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-primary bg-opacity-10 text-primary me-2">{{ loop.index }}</span>
+                                                <strong>{{ product }}</strong>
+                                            </div>
+                                            <small class="text-muted">{{ count }} sale{% if count > 1 %}s{% endif %}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="text-success fw-semibold">Ksh {{ "{:,.2f}".format(product_revenue[product]) }}</div>
+                                            <small class="text-muted">Revenue</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-muted">No products to show</div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-box fa-2x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No product data</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3"><i class="fas fa-users text-success me-2"></i> Top Customers</h6>
+                    {% if sales %}
+                        {% set customer_counts = {} %}
+                        {% set customer_revenue = {} %}
+                        {% for sale in sales %}
+                            {% set customer = sale.customer_name or 'Walk-in' %}
+                            {% set revenue = sale.total_amount|default('0')|string|replace('Ksh','')|replace('$','')|replace(',','')|float %}
+                            
+                            {% if customer in customer_counts %}
+                                {% set _ = customer_counts.update({customer: customer_counts[customer] + 1}) %}
+                                {% set _ = customer_revenue.update({customer: (customer_revenue[customer] + revenue)}) %}
+                            {% else %}
+                                {% set _ = customer_counts.update({customer: 1}) %}
+                                {% set _ = customer_revenue.update({customer: revenue}) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% set sorted_customers = customer_counts.items()|sort(attribute='1', reverse=True) %}
+                        {% for customer, count in sorted_customers[:4] %}
+                            <div class="list-group list-group-flush mb-2">
+                                <div class="list-group-item border-0 px-0 py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-success bg-opacity-10 text-success me-2">{{ loop.index }}</span>
+                                                <strong>{{ customer[:20] }}{% if customer|length > 20 %}...{% endif %}</strong>
+                                            </div>
+                                            <small class="text-muted">{{ count }} purchase{% if count > 1 %}s{% endif %}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="text-success fw-semibold">Ksh {{ "{:,.2f}".format(customer_revenue[customer]) }}</div>
+                                            <small class="text-muted">Total spent</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-muted">No customers to show</div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-2x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No customer data</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Quick Stats & Recent Activity -->
+        <div class="content-card h-100">
+            <h5 class="mb-3"><i class="fas fa-chart-bar text-info me-2"></i> Quick Stats</h5>
+            
+            {% if sales %}
+                {% set today_sales = [] %}
+                {% set today_revenue = 0.0 %}
+                {% set today_str = (now().strftime('%Y-%m-%d')) if now is defined else None %}
+                
+                {% for sale in sales %}
+                    {% if today_str and sale.sale_date == today_str %}
+                        {% set _ = today_sales.append(sale) %}
+                        {% set today_revenue = today_revenue + (sale.total_amount|default('0')|string|replace('Ksh','')|replace('$','')|replace(',','')|float) %}
+                    {% endif %}
+                {% endfor %}
+                
+                <div class="mb-4">
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-success mb-1">{{ today_sales|length }}</h4>
+                                <small class="text-muted">Today's Sales</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div>
+                                <h4 class="text-success mb-1">Ksh {{ "{:,.2f}".format(today_revenue) }}</h4>
+                                <small class="text-muted">Today's Revenue</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress mb-3" style="height: 8px;">
+                        {% set total_sales_num = total_sales|default( (sales|length) )|int %}
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ ((today_sales|length / total_sales_num) * 100) if total_sales_num > 0 else 0 }}%;">
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mb-3">
+                        {{ (((today_sales|length / total_sales_num) * 100) if total_sales_num > 0 else 0)|round(1) }}% of total sales today
+                    </small>
+                </div>
+                
+                <!-- Recent Sales -->
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="text-muted mb-3"><i class="fas fa-history me-2"></i> Recent Sales</h6>
+                    {% set recent_sales = (sales|sort(attribute='sale_date', reverse=True))[:3] %}
+                    <div class="list-group list-group-flush">
+                        {% for sale in recent_sales %}
+                            {% set rv = sale.total_amount|default('0')|string|replace('Ksh','')|replace('$','')|replace(',','')|float %}
+                            <div class="list-group-item border-0 px-0 py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="d-flex align-items-center mb-1">
+                                            <i class="fas fa-user-circle text-primary me-2"></i>
+                                            <strong>{{ (sale.customer_name or 'Walk-in')[:15] }}{% if (sale.customer_name or '')|length > 15 %}...{% endif %}</strong>
+                                        </div>
+                                        <small class="text-muted">{{ (sale.product or '')[:15] }}{% if (sale.product or '')|length > 15 %}...{% endif %}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="text-success fw-semibold">Ksh {{ "{:,.2f}".format(rv) }}</div>
+                                        <small class="text-muted">{{ sale.sale_date }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-bar fa-2x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No sales data available</p>
+                    <small class="text-muted">Record your first sale to see analytics</small>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Main Sales Records -->
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0">Sales Records</h4>
+            <p class="text-muted mb-0">Complete transaction history. Click any row to view details.</p>
+        </div>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSaleModal">
+            <i class="fas fa-plus me-2"></i> Record Sale
+        </button>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <span class="me-3 text-muted small">Filter by:</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-success active" id="filterAllSales">All</button>
+                    <button type="button" class="btn btn-outline-success" id="filterToday">Today</button>
+                    <button type="button" class="btn btn-outline-success" id="filterHighValue">High Value</button>
+                    <button type="button" class="btn btn-outline-success" id="filterRecent">Recent</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search sales..." id="salesSearch">
+                <button class="btn btn-outline-secondary" type="button" id="clearSalesSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+        <table class="table table-hover">
+            <thead class="table-success sticky-top">
+                <tr>
+                    <th width="80">ID</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th width="80">Qty</th>
+                    <th width="140">Total (Ksh)</th>
+                    <th width="120">Date</th>
+                    <th width="140">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="salesTable">
+                {% if sales %}
+                    {% for s in sales %}
+                    {% set amount_val = (s.total_amount|default('0')|string|replace('Ksh','')|replace('$','')|replace(',',''))|float %}
+                    <tr class="sale-row" 
+                        data-customer="{{ (s.customer_name or '')|lower }}"
+                        data-product="{{ (s.product or '')|lower }}"
+                        data-date="{{ s.sale_date }}"
+                        data-amount="{{ amount_val }}"
+                        data-id="S-{{ s.id }}">
+                        <td>
+                            <span class="badge bg-secondary">S-{{ s.id }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-user text-primary me-2"></i>
+                                <strong>{{ s.customer_name or 'Walk-in' }}</strong>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-box text-warning me-2"></i>
+                                <span>{{ s.product or '—' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                                {{ s.quantity|default(0) }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-money-bill-wave text-success me-2"></i>
+                                <span class="fw-bold text-success">Ksh {{ "{:,.2f}".format(amount_val) }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small">{{ s.sale_date }}</div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a class="btn btn-info" href="{{ url_for('view_sale', sale_id=s.id) }}" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a class="btn btn-warning" href="{{ url_for('edit_sale', sale_id=s.id) }}" title="Edit Sale">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteSaleModal"
+                                        data-id="{{ s.id }}" data-name="{{ s.customer_name or 'Sale S-' ~ s.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="text-center py-5">
+                                <i class="fas fa-shopping-basket fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No sales records found</h5>
+                                <p class="text-muted">Start by recording your first sale transaction</p>
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSaleModal">
+                                    <i class="fas fa-plus me-2"></i> Record First Sale
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if sales %}
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <small class="text-muted">Showing {{ sales|length }} sale{% if sales|length != 1 %}s{% endif %} • Total: Ksh {{ "{:,.2f}".format(trnum) }}</small>
+        </div>
+        <div class="col-md-6 text-end">
+            <small class="text-muted">
+                <i class="fas fa-circle text-success small me-1"></i> Revenue
+                <i class="fas fa-circle text-primary small mx-2 me-1"></i> Customer
+                <i class="fas fa-circle text-warning small mx-2 me-1"></i> Product
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete confirmation modal for sales -->
+<div class="modal fade" id="confirmDeleteSaleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="POST" id="deleteSaleForm" class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>You're about to permanently delete this sale:</p>
+        <p class="fw-semibold mb-1" id="deleteSaleName">—</p>
+        <p class="text-muted small">This action cannot be undone. A deletion record will be saved.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-danger">Delete Sale</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Enhanced Add Sale Modal -->
+<div class="modal fade" id="addSaleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-cash-register me-2"></i>Record Sale</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_sale') }}">
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Record customer sales transactions. All fields marked with * are required for accurate tracking.</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Customer Name *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input name="customer_name" class="form-control" required placeholder="e.g., John Smith, ABC Company">
+                        </div>
+                        <small class="text-muted">Name of customer or company</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Product *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-box"></i></span>
+                            <input name="product" class="form-control" required placeholder="e.g., Milk, Eggs, Meat, Wool">
+                        </div>
+                        <small class="text-muted">Product or service sold</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Quantity *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
+                                <input name="quantity" type="number" class="form-control" value="1" min="1" required>
+                                <span class="input-group-text">units</span>
+                            </div>
+                            <small class="text-muted">Number of items</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Price per unit *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-money-bill-wave"></i></span>
+                                <input name="price_per_unit" type="number" step="0.01" class="form-control" placeholder="0.00" required>
+                            </div>
+                            <small class="text-muted">Price for each unit</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Sale date *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                <input name="sale_date" type="date" class="form-control" required>
+                            </div>
+                            <small class="text-muted">Date of transaction</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Auto-calculated Total -->
+                    <div class="mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Total Amount:</small>
+                                        <h5 class="mb-0 text-success" id="calculatedTotal">Ksh 0.00</h5>
+                                    </div>
+                                    <i class="fas fa-calculator fa-2x text-success"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Information -->
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-credit-card"></i></span>
+                            <select class="form-select" name="payment_method">
+                                <option value="">Select method</option>
+                                <option value="cash">Cash</option>
+                                <option value="card">Credit/Debit Card</option>
+                                <option value="bank">Bank Transfer</option>
+                                <option value="mobile">M-Pesa</option>
+                                <option value="check">Check</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-sticky-note"></i></span>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Additional notes about the sale..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+                    <button class="btn btn-success" type="submit">
+                        <i class="fas fa-save me-2"></i>Save Sale Record
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .content-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+    }
+    .sale-row:hover {
+        background-color: rgba(40, 167, 69, 0.05) !important;
+        cursor: pointer;
+    }
+    .sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    .list-group-item {
+        transition: background-color 0.2s;
+    }
+    .list-group-item:hover {
+        background-color: rgba(0,0,0,.02);
+    }
+    .progress {
+        background-color: rgba(0,0,0,0.05);
+    }
+    .border-end {
+        border-right: 1px solid rgba(0,0,0,0.1);
+    }
+</style>
+
+<script>
+    // Auto-calculate total in modal (Ksh)
+    document.addEventListener('DOMContentLoaded', function() {
+        const quantityInput = document.querySelector('input[name="quantity"]');
+        const priceInput = document.querySelector('input[name="price_per_unit"]');
+        const totalDisplay = document.getElementById('calculatedTotal');
+        
+        function calculateTotal() {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = quantity * price;
+            totalDisplay.textContent = 'Ksh ' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        if (quantityInput && priceInput && totalDisplay) {
+            quantityInput.addEventListener('input', calculateTotal);
+            priceInput.addEventListener('input', calculateTotal);
+            calculateTotal(); // Initial calculation
+        }
+        
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.querySelector('input[name="sale_date"]');
+        if (dateInput && !dateInput.value) {
+            dateInput.value = today;
+        }
+    });
+    
+    // Confirm Delete Modal wiring (for sales)
+    (function() {
+        var confirmDeleteModal = document.getElementById('confirmDeleteSaleModal');
+        if (!confirmDeleteModal) return;
+
+        confirmDeleteModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            if (!button) return;
+
+            var saleId = button.getAttribute('data-id');
+            var saleName = button.getAttribute('data-name') || '—';
+
+            var nameEl = document.getElementById('deleteSaleName');
+            if (nameEl) nameEl.textContent = saleName + ' (S-' + saleId + ')';
+
+            var form = document.getElementById('deleteSaleForm');
+            if (form) {
+                form.action = '/delete_sale/' + saleId;
+                form.method = 'post';
+            }
+        });
+    })();
+
+    // Filter, search, row click, and other JS unchanged except Ksh formatting considerations
+    document.getElementById('filterAllSales')?.addEventListener('click', function() {
+        setActiveFilter(this);
+        showAllSales();
+    });
+    
+    document.getElementById('filterToday')?.addEventListener('click', function() {
+        setActiveFilter(this);
+        const today = new Date().toISOString().split('T')[0];
+        const rows = document.querySelectorAll('.sale-row');
+        rows.forEach(row => {
+            const saleDate = row.getAttribute('data-date');
+            row.style.display = saleDate === today ? '' : 'none';
+        });
+    });
+    
+    document.getElementById('filterHighValue')?.addEventListener('click', function() {
+        setActiveFilter(this);
+        const rows = document.querySelectorAll('.sale-row');
+        rows.forEach(row => {
+            const amount = parseFloat(row.getAttribute('data-amount')) || 0;
+            row.style.display = amount > 10000 ? '' : 'none'; // Show sales over Ksh 10,000 by default
+        });
+    });
+    
+    document.getElementById('filterRecent')?.addEventListener('click', function() {
+        setActiveFilter(this);
+        const rows = document.querySelectorAll('.sale-row');
+        // Show only last 20 sales
+        rows.forEach((row, index) => {
+            row.style.display = index < 20 ? '' : 'none';
+        });
+    });
+    
+    function setActiveFilter(button) {
+        document.querySelectorAll('#filterAllSales, #filterToday, #filterHighValue, #filterRecent').forEach(btn => {
+            btn.classList.remove('active');
+            btn.classList.add('btn-outline-success');
+        });
+        button.classList.add('active');
+        button.classList.remove('btn-outline-success');
+    }
+    
+    function showAllSales() {
+        const rows = document.querySelectorAll('.sale-row');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+    }
+    
+    // Search functionality
+    const salesSearch = document.getElementById('salesSearch');
+    const clearSalesSearch = document.getElementById('clearSalesSearch');
+    
+    if (salesSearch) {
+        salesSearch.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('.sale-row');
+            
+            rows.forEach(row => {
+                const text = (row.textContent || '').toLowerCase();
+                const customer = row.getAttribute('data-customer') || '';
+                const product = row.getAttribute('data-product') || '';
+                
+                row.style.display = (text.indexOf(searchTerm) !== -1) || 
+                                   (customer.indexOf(searchTerm) !== -1) || 
+                                   (product.indexOf(searchTerm) !== -1) ? '' : 'none';
+            });
+        });
+    }
+    
+    if (clearSalesSearch) {
+        clearSalesSearch.addEventListener('click', function() {
+            salesSearch.value = '';
+            showAllSales();
+        });
+    }
+    
+    // Row click -> view
+    document.querySelectorAll('.sale-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't trigger if clicking on buttons or links
+            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || 
+                e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+            const viewBtn = this.querySelector('a[href*="view_sale"]');
+            if (viewBtn) viewBtn.click();
+        });
+    });
+    
+    // Card hover effects
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+</script>
+{% endblock %}

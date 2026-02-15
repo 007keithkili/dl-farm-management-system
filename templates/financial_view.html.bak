@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Financial Record{% endblock %}
+{% block page_title %}Financial Record{% endblock %}
+{% block page_subtitle %}Transaction details{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <h4>Transaction F-{{ record.id }}</h4>
+  <dl class="row">
+    <dt class="col-sm-3">Type</dt><dd class="col-sm-9">{{ record.transaction_type }}</dd>
+    <dt class="col-sm-3">Amount</dt><dd class="col-sm-9">{{ record.amount }}</dd>
+    <dt class="col-sm-3">Category</dt><dd class="col-sm-9">{{ record.category }}</dd>
+    <dt class="col-sm-3">Description</dt><dd class="col-sm-9">{{ record.description }}</dd>
+    <dt class="col-sm-3">Date</dt><dd class="col-sm-9">{{ record.transaction_date or record.created_at }}</dd>
+    <dt class="col-sm-3">Reference</dt><dd class="col-sm-9">{{ record.reference or '-' }}</dd>
+    <dt class="col-sm-3">Created At</dt><dd class="col-sm-9">{{ record.created_at }}</dd>
+  </dl>
+  <a class="btn btn-warning" href="{{ url_for('edit_financial', record_id=record.id) }}">Edit</a>
+  <a class="btn btn-secondary" href="{{ url_for('financial') }}">Back</a>
+</div>
+{% endblock %}

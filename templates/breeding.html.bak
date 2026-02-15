@@ -1,0 +1,1221 @@
+{% extends "base.html" %}
+{% block title %}Breeding Programs{% endblock %}
+{% block page_title %}Breeding Programs{% endblock %}
+{% block page_subtitle %}Manage breeding pairs and expected births{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== COMPACT LAYOUT ===== */
+.content-card { 
+  padding: 20px; 
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+
+/* COMPACT STAT CARDS */
+.stat-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+  border-left: 3px solid #3b82f6;
+  transition: all 0.2s ease;
+  height: 100%;
+  position: relative;
+  text-align: center;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+.stat-card i {
+  font-size: 24px;
+  color: #ffffff;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  margin: 0 auto 12px auto;
+}
+
+.stat-card h3 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.1;
+}
+
+.stat-card p {
+  margin: 5px 0 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Stat card specific colors */
+.stat-card:nth-child(1) i { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+.stat-card:nth-child(2) i { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.stat-card:nth-child(3) i { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.stat-card:nth-child(4) i { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+
+/* COMPACT TABLE */
+.table-responsive {
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.table thead th {
+  background: #1e293b;
+  color: white;
+  font-weight: 600;
+  padding: 14px 12px;
+  border: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: 12px;
+  vertical-align: middle;
+  border-color: #f1f5f9;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+/* Breeding Timeline Section */
+.breeding-timeline {
+  margin-top: 25px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.section-header h5 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.section-subtitle {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin-top: 3px;
+  width: 100%;
+}
+
+/* Timeline Cards Grid */
+.timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.timeline-card {
+  background: white;
+  border-radius: 10px;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.timeline-card-header {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  padding: 15px;
+  position: relative;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.timeline-pair-id {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timeline-pair-id span {
+  font-size: 1.4rem;
+  font-weight: 800;
+  opacity: 0.9;
+}
+
+.timeline-subtitle {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.timeline-status {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.timeline-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.timeline-card-body {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Animal Pair Info */
+.pair-info {
+  margin-bottom: 15px;
+}
+
+.animal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.animal-item:last-child {
+  border-bottom: none;
+}
+
+.animal-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.animal-value {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+/* Timeline Dates */
+.timeline-dates {
+  margin-bottom: 15px;
+}
+
+.date-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.date-label {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.date-value {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+
+/* Progress Bar */
+.timeline-progress {
+  margin-top: 10px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.progress-label span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.progress-bar-container {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  transition: width 0.3s ease;
+}
+
+/* Summary Cards */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.summary-card h6 {
+  color: #1e293b;
+  font-weight: 700;
+  margin-bottom: 15px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-card h6 i {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-in-progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-planned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* Countdown Indicator */
+.countdown-indicator {
+  text-align: center;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.countdown-value {
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #3b82f6;
+  margin-bottom: 2px;
+}
+
+.countdown-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.btn-outline-secondary {
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .timeline-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .stat-card {
+    padding: 15px;
+  }
+  
+  .stat-card i {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .timeline-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .breeding-timeline {
+    padding: 15px;
+  }
+  
+  .summary-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .table thead th,
+  .table tbody td {
+    padding: 10px 8px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Pagination Controls */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.page-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.page-btn.active {
+  background: #8b5cf6;
+  color: white;
+  border-color: #8b5cf6;
+}
+
+.page-info {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 10px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 30px 15px;
+}
+
+.empty-state i {
+  font-size: 2rem;
+  color: #cbd5e1;
+  margin-bottom: 15px;
+}
+
+.empty-state p {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* Badge for table */
+.badge {
+  padding: 5px 10px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-radius: 12px;
+}
+
+.bg-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; }
+.bg-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; }
+.bg-info { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important; }
+
+/* Update Footer */
+.update-footer {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.update-footer small {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.time-badge {
+  background: #10b981;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  margin-left: 6px;
+}
+
+/* Print-specific rules: show only the main content-card when printing */
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+  /* Show the content-card and its descendants */
+  .content-card, .content-card * {
+    visibility: visible;
+  }
+  /* Position printable content at top-left */
+  .content-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
+  /* Hide interactive UI elements */
+  .btn, .btn-group, .page-btn, .pagination-controls, .modal, .dataTables_wrapper, .btn-close {
+    display: none !important;
+  }
+  /* Make tables break nicely */
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <!-- Header with Add Button -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h4 style="margin:0; color:#1e293b; font-weight:700;">Breeding Programs</h4>
+      <p class="text-muted mb-0" style="font-size:0.9rem;">Manage breeding pairs and track expected births</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBreedingModal">
+      <i class="fas fa-plus-circle me-2"></i>New Breeding Pair
+    </button>
+  </div>
+
+  <!-- COMPACT STATISTICS CARDS -->
+  <div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card">
+        <i class="fas fa-dna"></i>
+        <div>
+          <h3>{{ active_pairs }}</h3>
+          <p>Active Pairs</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card">
+        <i class="fas fa-baby"></i>
+        <div>
+          <h3>{{ expected_births }}</h3>
+          <p>Expected Births</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card">
+        <i class="fas fa-paw"></i>
+        <div>
+          <h3>{{ total_offspring }}</h3>
+          <p>Total Offspring</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card">
+        <i class="fas fa-percentage"></i>
+        <div>
+          <h3>{{ success_rate }}%</h3>
+          <p>Success Rate</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPACT BREEDING RECORDS TABLE -->
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Pair ID</th>
+          <th>Male Animal</th>
+          <th>Female Animal</th>
+          <th>Breeding Date</th>
+          <th>Expected Birth</th>
+          <th>Days Remaining</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if breeding_records %}
+          {% for b in breeding_records %}
+          <tr>
+            <td><strong style="color:#8b5cf6;">BP-{{ b.id }}</strong></td>
+            <td><span class="badge bg-light text-dark border">{{ b.male_id }}</span></td>
+            <td><span class="badge bg-light text-dark border">{{ b.female_id }}</span></td>
+            <td>{{ b.breeding_date or '—' }}</td>
+            <td>
+              {% if b.expected_birth %}
+                <strong>{{ b.expected_birth }}</strong>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if b.expected_birth and b.status == 'In Progress' %}
+                {% set days_remaining = (b.expected_birth|string).split('-') %}
+                {% set expected_date = date(days_remaining[0]|int, days_remaining[1]|int, days_remaining[2]|int) %}
+                {% set today = now().date() %}
+                {% set diff = (expected_date - today).days %}
+                {% if diff > 0 %}
+                  <span class="badge bg-info">{{ diff }} days</span>
+                {% elif diff == 0 %}
+                  <span class="badge bg-warning">Due Today</span>
+                {% else %}
+                  <span class="badge bg-secondary">Overdue</span>
+                {% endif %}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if b.status == 'Completed' %}
+                <span class="badge bg-success">Completed</span>
+              {% elif b.status == 'In Progress' %}
+                <span class="badge bg-warning">In Progress</span>
+              {% else %}
+                <span class="badge bg-info">{{ b.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <a class="btn btn-outline-info" href="{{ url_for('view_breeding', breeding_id=b.id) }}" title="View">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a class="btn btn-outline-warning" href="{{ url_for('edit_breeding', breeding_id=b.id) }}" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </a>
+              </div>
+
+              {# DELETE button: posts to delete_breeding route, confirms via confirmAction helper #}
+              <form id="del-breeding-{{ b.id }}" method="POST" action="{{ url_for('delete_breeding', breeding_id=b.id) }}" style="display:inline;margin-left:8px;">
+                <input type="hidden" name="confirm" value="1">
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Delete"
+                  onclick="confirmAction('Delete breeding program BP-{{ b.id }}? This will remove the record permanently.', function(ok){ if(ok) document.getElementById('del-breeding-{{ b.id }}').submit(); })">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="empty-state">
+              <i class="fas fa-dna"></i>
+              <p class="mb-0">No breeding records found. Add your first breeding pair to get started.</p>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BREEDING TIMELINE SECTION -->
+  <div class="breeding-timeline">
+    <div class="section-header">
+      <div>
+        <h5>Breeding Timeline</h5>
+        <p class="section-subtitle">Active breeding pairs and upcoming births</p>
+      </div>
+      <div>
+        <button id="exportBreedingSummary" class="btn btn-outline-secondary">
+          <i class="fas fa-download me-1"></i>Export
+        </button>
+        <!-- PRINT BUTTON ADDED -->
+        <button id="printBreeding" class="btn btn-outline-secondary ms-2">
+          <i class="fas fa-print me-1"></i>Print
+        </button>
+      </div>
+    </div>
+
+    <!-- Timeline Cards Grid with Pagination -->
+    <div id="breedingTimelineArea" class="timeline-grid" aria-live="polite">
+      <!-- Timeline cards will be inserted here by JavaScript -->
+    </div>
+
+    <!-- Pagination Controls (only shown when many records) -->
+    <div id="paginationControls" class="pagination-controls d-none">
+      <button id="prevPage" class="page-btn">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span id="pageInfo" class="page-info">Page 1 of 1</span>
+      <button id="nextPage" class="page-btn">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <h6><i class="fas fa-chart-line"></i> Program Insights</h6>
+        <div id="programInsights">
+          <!-- Program insights will be inserted here -->
+        </div>
+        <div class="mt-3">
+          <div class="status-badge status-in-progress me-2">In Progress</div>
+          <div class="status-badge status-completed me-2">Completed</div>
+          <div class="status-badge status-planned">Planned</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <h6><i class="fas fa-calendar-alt"></i> Upcoming Births</h6>
+        <div id="upcomingBirths">
+          <!-- Upcoming births will be inserted here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Update Footer -->
+    <div class="update-footer">
+      <small>Updated: <span class="time-badge" id="lastUpdate">Just now</span></small>
+    </div>
+  </div>
+</div>
+
+<!-- Add Breeding Modal -->
+<div class="modal fade" id="addBreedingModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Breeding Pair</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_breeding') }}">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Male Animal ID *</label>
+              <input name="male_id" class="form-control" required placeholder="Enter male animal tag number">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Female Animal ID *</label>
+              <input name="female_id" class="form-control" required placeholder="Enter female animal tag number">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Breeding Date *</label>
+              <input name="breeding_date" type="date" class="form-control" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Expected Birth Date</label>
+              <input name="expected_birth" type="date" class="form-control">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Program Status</label>
+            <select name="status" class="form-select">
+              <option value="In Progress" selected>In Progress</option>
+              <option value="Planned">Planned</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes about this breeding pair..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit">Add Breeding Pair</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  // Configuration
+  const RECORDS_PER_PAGE = 9; // 3x3 grid
+  let currentPage = 1;
+  let totalPages = 1;
+  let breedingData = [];
+  
+  // Update time function
+  function updateLastUpdateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('lastUpdate').textContent = timeString;
+  }
+  
+  /* Build data array from template */
+  const breedingRecords = [
+    {%- if breeding_records %}
+      {%- for b in breeding_records %}
+        {
+          id: {{ b.id | default(None) | tojson }},
+          male_id: {{ (b.male_id | default('')) | string | tojson }},
+          female_id: {{ (b.female_id | default('')) | string | tojson }},
+          breeding_date: {{ (b.breeding_date | default('')) | string | tojson }},
+          expected_birth: {{ (b.expected_birth | default('')) | string | tojson }},
+          status: {{ (b.status | default('')) | string | tojson }},
+          notes: {{ (b.notes | default('')) | string | tojson }}
+        }{{ "," if not loop.last else "" }}
+      {%- endfor %}
+    {%- else %}
+      /* empty */
+    {%- endif %}
+  ];
+
+  // Helper functions
+  function calculateDaysRemaining(expectedDateStr) {
+    if (!expectedDateStr) return null;
+    const expectedDate = new Date(expectedDateStr);
+    const today = new Date();
+    const diffTime = expectedDate - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+  
+  function calculateProgress(breedingDateStr, expectedDateStr) {
+    if (!breedingDateStr || !expectedDateStr) return 0;
+    const breedingDate = new Date(breedingDateStr);
+    const expectedDate = new Date(expectedDateStr);
+    const today = new Date();
+    
+    const totalDays = (expectedDate - breedingDate) / (1000 * 60 * 60 * 24);
+    const daysPassed = (today - breedingDate) / (1000 * 60 * 60 * 24);
+    
+    if (daysPassed <= 0) return 0;
+    if (daysPassed >= totalDays) return 100;
+    return Math.round((daysPassed / totalDays) * 100);
+  }
+  
+  function getStatusColor(status) {
+    const colors = {
+      'In Progress': '#f59e0b',
+      'Completed': '#10b981',
+      'Planned': '#3b82f6',
+      'Cancelled': '#64748b'
+    };
+    return colors[status] || '#64748b';
+  }
+  
+  function getStatusDot(status) {
+    const dots = {
+      'In Progress': '<span class="timeline-status-dot" style="background:#f59e0b"></span>',
+      'Completed': '<span class="timeline-status-dot" style="background:#10b981"></span>',
+      'Planned': '<span class="timeline-status-dot" style="background:#3b82f6"></span>',
+      'Cancelled': '<span class="timeline-status-dot" style="background:#64748b"></span>'
+    };
+    return dots[status] || '<span class="timeline-status-dot" style="background:#64748b"></span>';
+  }
+
+  // Process breeding data
+  function processBreedingData() {
+    breedingData = breedingRecords.map(record => {
+      const daysRemaining = calculateDaysRemaining(record.expected_birth);
+      const progress = calculateProgress(record.breeding_date, record.expected_birth);
+      
+      return {
+        ...record,
+        daysRemaining,
+        progress,
+        statusColor: getStatusColor(record.status),
+        statusDot: getStatusDot(record.status)
+      };
+    });
+    
+    // Sort by status and expected birth date
+    breedingData.sort((a, b) => {
+      // Active first (In Progress, then Planned, then Completed, then Cancelled)
+      const statusOrder = { 'In Progress': 1, 'Planned': 2, 'Completed': 3, 'Cancelled': 4 };
+      const aOrder = statusOrder[a.status] || 5;
+      const bOrder = statusOrder[b.status] || 5;
+      
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      
+      // Then by expected birth date (soonest first)
+      if (a.expected_birth && b.expected_birth) {
+        return new Date(a.expected_birth) - new Date(b.expected_birth);
+      }
+      
+      return 0;
+    });
+    
+    return breedingData;
+  }
+
+  // Update statistics with animation
+  function updateStatistics() {
+    const activePairs = breedingData.filter(b => b.status === 'In Progress').length;
+    const expectedBirths = breedingData.filter(b => b.status === 'In Progress' && b.expected_birth).length;
+    const completedPairs = breedingData.filter(b => b.status === 'Completed').length;
+    
+    // Animate the stat values
+    function animateValue(elementId, endValue) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      
+      let start = 0;
+      const duration = 600;
+      const increment = endValue / (duration / 16);
+      
+      const timer = setInterval(() => {
+        start += increment;
+        if (start >= endValue) {
+          element.textContent = endValue;
+          clearInterval(timer);
+        } else {
+          element.textContent = Math.floor(start);
+        }
+      }, 16);
+    }
+    
+    // We'll update the elements if they exist
+    // Note: The server-side values are already rendered, so we need to update them
+    // For now, we'll just use the server-side values
+    // In a real app, you might want to recalculate these on the client side
+  }
+
+  // Render timeline cards for current page
+  function renderTimelineCards(page) {
+    const timelineArea = document.getElementById('breedingTimelineArea');
+    const filteredRecords = breedingData.filter(b => b.status !== 'Completed' && b.status !== 'Cancelled');
+    
+    totalPages = Math.ceil(filteredRecords.length / RECORDS_PER_PAGE);
+    const startIdx = (page - 1) * RECORDS_PER_PAGE;
+    const endIdx = startIdx + RECORDS_PER_PAGE;
+    const pageRecords = filteredRecords.slice(startIdx, endIdx);
+    
+    if (pageRecords.length === 0) {
+      timelineArea.innerHTML = `
+        <div class="col-12">
+          <div class="timeline-card text-center p-4">
+            <i class="fas fa-dna fa-2x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No active breeding programs found.</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    timelineArea.innerHTML = pageRecords.map(record => {
+      const daysLeft = record.daysRemaining;
+      const countdownText = daysLeft > 0 ? `${daysLeft} days` : daysLeft === 0 ? 'Due today' : 'Overdue';
+      const countdownClass = daysLeft > 7 ? 'text-success' : daysLeft > 0 ? 'text-warning' : 'text-danger';
+      
+      return `
+        <div class="timeline-card">
+          <div class="timeline-card-header">
+            <div class="timeline-pair-id">
+              BP-${record.id}
+              <span>${record.progress}%</span>
+            </div>
+            <div class="timeline-status">
+              ${record.statusDot}
+              ${record.status}
+            </div>
+          </div>
+          
+          <div class="timeline-card-body">
+            <div class="pair-info">
+              <div class="animal-item">
+                <span class="animal-label">Male:</span>
+                <span class="animal-value">${record.male_id}</span>
+              </div>
+              <div class="animal-item">
+                <span class="animal-label">Female:</span>
+                <span class="animal-value">${record.female_id}</span>
+              </div>
+            </div>
+            
+            <div class="timeline-dates">
+              <div class="date-item">
+                <span class="date-label">Bred:</span>
+                <span class="date-value">${record.breeding_date || '—'}</span>
+              </div>
+              <div class="date-item">
+                <span class="date-label">Expected:</span>
+                <span class="date-value">${record.expected_birth || '—'}</span>
+              </div>
+            </div>
+            
+            ${record.status === 'In Progress' && record.expected_birth ? `
+            <div class="countdown-indicator">
+              <div class="countdown-value ${countdownClass}">${countdownText}</div>
+              <div class="countdown-label">until expected birth</div>
+            </div>
+            ` : ''}
+            
+            ${record.status === 'In Progress' && record.breeding_date && record.expected_birth ? `
+            <div class="timeline-progress">
+              <div class="progress-label">
+                <span>Progress</span>
+                <span>${record.progress}%</span>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-fill" style="width: ${record.progress}%"></div>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Update pagination controls
+    updatePaginationControls();
+  }
+
+  // Update pagination controls
+  function updatePaginationControls() {
+    const paginationControls = document.getElementById('paginationControls');
+    const pageInfo = document.getElementById('pageInfo');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    if (totalPages > 1) {
+      paginationControls.classList.remove('d-none');
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      
+      prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = currentPage === totalPages;
+      
+      prevBtn.style.opacity = currentPage === 1 ? '0.5' : '1';
+      nextBtn.style.opacity = currentPage === totalPages ? '0.5' : '1';
+    } else {
+      paginationControls.classList.add('d-none');
+    }
+  }
+
+  // Update program insights
+  function updateProgramInsights() {
+    const insightsEl = document.getElementById('programInsights');
+    const total = breedingData.length;
+    const active = breedingData.filter(b => b.status === 'In Progress').length;
+    const planned = breedingData.filter(b => b.status === 'Planned').length;
+    const completed = breedingData.filter(b => b.status === 'Completed').length;
+    
+    const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
+    const plannedPct = total > 0 ? Math.round((planned / total) * 100) : 0;
+    const completedPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    insightsEl.innerHTML = `
+      <div class="mb-3">
+        <div class="d-flex justify-content-between mb-1">
+          <small>Active Programs</small>
+          <small><strong>${active}</strong> (${activePct}%)</small>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-warning" style="width: ${activePct}%"></div>
+        </div>
+      </div>
+      
+      <div class="mb-3">
+        <div class="d-flex justify-content-between mb-1">
+          <small>Planned</small>
+          <small><strong>${planned}</strong> (${plannedPct}%)</small>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-primary" style="width: ${plannedPct}%"></div>
+        </div>
+      </div>
+      
+      <div class="mb-2">
+        <div class="d-flex justify-content-between mb-1">
+          <small>Completed</small>
+          <small><strong>${completed}</strong> (${completedPct}%)</small>
+        </div>
+        <div class="progress" style="height: 6px;">
+          <div class="progress-bar bg-success" style="width: ${completedPct}%"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Update upcoming births
+  function updateUpcomingBirths() {
+    const upcomingEl = document.getElementById('upcomingBirths');
+    const upcoming = breedingData
+      .filter(b => b.status === 'In Progress' && b.expected_birth)
+      .sort((a, b) => new Date(a.expected_birth) - new Date(b.expected_birth))
+      .slice(0, 5); // Show top 5
+    
+    if (upcoming.length === 0) {
+      upcomingEl.innerHTML = '<p class="text-muted mb-0">No upcoming births scheduled.</p>';
+      return;
+    }
+    
+    upcomingEl.innerHTML = upcoming.map(record => {
+      const daysLeft = record.daysRemaining;
+      const urgency = daysLeft <= 7 ? 'text-danger' : daysLeft <= 14 ? 'text-warning' : 'text-success';
+      
+      return `
+        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+          <div>
+            <div class="small"><strong>BP-${record.id}</strong></div>
+            <div class="small text-muted">${record.expected_birth}</div>
+          </div>
+          <div class="text-end">
+            <div class="small ${urgency}"><strong>${daysLeft > 0 ? daysLeft + ' days' : 'Due'}</strong></div>
+            <div class="small text-muted">Male: ${record.male_id}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Initialize the application
+  function init() {
+    // Process data
+    processBreedingData();
+    
+    // Update statistics
+    updateStatistics();
+    
+    // Render first page of timeline cards
+    renderTimelineCards(currentPage);
+    
+    // Update insights and upcoming births
+    updateProgramInsights();
+    updateUpcomingBirths();
+    
+    // Initialize update time
+    updateLastUpdateTime();
+    
+    // Setup pagination event listeners
+    document.getElementById('prevPage')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTimelineCards(currentPage);
+      }
+    });
+    
+    document.getElementById('nextPage')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderTimelineCards(currentPage);
+      }
+    });
+    
+    // CSV export
+    const exportBtn = document.getElementById('exportBreedingSummary');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function() {
+        const hdr = ['PairID', 'MaleID', 'FemaleID', 'BreedingDate', 'ExpectedBirth', 'Status', 'DaysRemaining', 'Progress%'];
+        let csv = hdr.join(',') + '\n';
+        
+        breedingData.forEach(record => {
+          csv += `BP-${record.id},${record.male_id},${record.female_id},${record.breeding_date},${record.expected_birth},${record.status},${record.daysRemaining || 'N/A'},${record.progress}\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const fname = `breeding_programs_${new Date().toISOString().slice(0, 10)}.csv`;
+        if (navigator.msSaveBlob) {
+          navigator.msSaveBlob(blob, fname);
+        } else {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = fname;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      });
+    }
+
+    // PRINT button handler: uses window.print() with print CSS rules to limit printed content
+    const printBtn = document.getElementById('printBreeding');
+    if (printBtn) {
+      printBtn.addEventListener('click', function() {
+        // Optionally update the "lastUpdate" time so the printed copy has a timestamp
+        updateLastUpdateTime();
+        // Call browser print; CSS @media print will ensure only .content-card prints
+        window.print();
+      });
+    }
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Auto-refresh time every minute
+  setInterval(updateLastUpdateTime, 60000);
+
+})();
+</script>
+{% endblock %}

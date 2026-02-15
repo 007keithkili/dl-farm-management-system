@@ -1,0 +1,40 @@
+<form id="exportForm" method="POST" action="{{ url_for('generate_report') }}" style="display:inline;">
+  <input type="hidden" name="report_type" id="export_report_type" value="comprehensive">
+  <input type="hidden" name="start_date" id="export_start_date" value="">
+  <input type="hidden" name="end_date" id="export_end_date" value="">
+  <input type="hidden" name="format" id="export_format" value="csv">
+
+  <div class="d-flex gap-2 justify-content-end mb-3">
+    <button type="button" class="btn btn-outline-primary" id="exportPdfBtn" title="Export PDF">
+      <i class="fas fa-file-pdf"></i> Export PDF
+    </button>
+    <button type="button" class="btn btn-success" id="exportExcelBtn" title="Export Excel">
+      <i class="fas fa-file-excel"></i> Export Excel
+    </button>
+    <button type="button" class="btn btn-secondary" id="exportCsvBtn" title="Export CSV">
+      <i class="fas fa-file-csv"></i> Export CSV
+    </button>
+  </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  function submitExport(format){
+    // try to pick up date inputs if they exist (IDs: #startDate and #endDate)
+    const startElem = document.querySelector('#startDate') || document.querySelector('input[name="start_date"]');
+    const endElem = document.querySelector('#endDate') || document.querySelector('input[name="end_date"]');
+    const start = startElem ? startElem.value : '';
+    const end = endElem ? endElem.value : '';
+    document.getElementById('export_start_date').value = start;
+    document.getElementById('export_end_date').value = end;
+    document.getElementById('export_format').value = format;
+    document.getElementById('exportForm').submit();
+  }
+  const pdfBtn = document.getElementById('exportPdfBtn');
+  const excelBtn = document.getElementById('exportExcelBtn');
+  const csvBtn = document.getElementById('exportCsvBtn');
+  if (pdfBtn) pdfBtn.addEventListener('click', ()=> submitExport('pdf'));
+  if (excelBtn) excelBtn.addEventListener('click', ()=> submitExport('excel'));
+  if (csvBtn) csvBtn.addEventListener('click', ()=> submitExport('csv'));
+});
+</script>

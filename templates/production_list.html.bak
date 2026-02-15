@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% if records is not defined %}{% set records = [] %}{% endif %}
+{% if totals is not defined %}{% set totals = {} %}{% endif %}
+
+{% block title %}Production{% endblock %}
+{% block page_title %}Production Records{% endblock %}
+{% block page_subtitle %}Daily yields and animal production history{% endblock %}
+
+{% block extra_css %}
+<style>
+.content-card{padding:18px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.04);}
+.summary-cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.summary-card{flex:1;min-width:180px;padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#f7fafc);box-shadow:0 2px 8px rgba(0,0,0,0.03);}
+.table-responsive{border-radius:10px;border:1px solid #e2e8f0;overflow:hidden}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 style="margin:0;">Production</h4>
+      <p class="text-muted mb-0">Track daily yields per animal. Click a row to view details.</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a class="btn btn-outline-secondary" href="{{ url_for('production_export') }}"><i class="fas fa-file-export me-1"></i>Export CSV</a>
+      <a class="btn btn-primary" href="{{ url_for('production_create') }}"><i class="fas fa-plus-circle me-1"></i>Add Record</a>
+    </div>
+  </div>
+
+  <div class="summary-cards mb-3">
+    <div class="summary-card">
+      <small class="text-muted">Total Records</small>
+      <div style="font-weight:800;font-size:1.4rem;">{{ totals.total_records|default(records|length) }}</div>
+    </div>
+    <div class="summary-card">
+      <small class="text-muted">Total Milk (L)</small>
+      <div style="font-weight:800;font-size:1.4rem;">{{ totals.total_milk|default(0) }}</div>
+    </div>
+    <div class="summary-card">
+      <small class="text-muted">Last 24h</small>
+      <div style="font-weight:800;font-size:1.4rem;">{{ totals.last_24h|default(0) }}</div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Animal</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th>Qty</th>
+          <th>Unit</th>
+          <th>Date</th>
+          <th style="width:180px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if records %}
+          {% for r in records %}
+            <tr data-id="{{ r.id }}">
+              <td>{{ r.id }}</td>
+              <td><strong>{{ r.animal_tag or r.tag or '—' }}</strong></td>
+              <td>{{ r.category or '—' }}</td>
+              <td>{{ (r.production_type or (r.liters and 'milk') or '—')|capitalize }}</td>
+              <td>{{ r.quantity or r.liters or 0 }}</td>
+              <td>{{ r.unit or 'L' }}</td>
+              <td>{{ r.production_date or r.date or r.created_at or '—' }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <a class="btn btn-info" href="{{ url_for('view_production', production_id=r.id) }}"><i class="fas fa-eye"></i></a>
+                  <a class="btn btn-warning" href="{{ url_for('edit_production', production_id=r.id) }}"><i class="fas fa-edit"></i></a>
+                  <button class="btn btn-danger" onclick="confirmAction('Delete record {{ r.id }}?', function(ok){ if(ok) deleteRecord({{ r.id }}); })"><i class="fas fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="8" class="text-center py-4">
+            <i class="fas fa-seedling fa-2x text-muted"></i>
+            <p class="mt-2 text-muted">No production records yet. Add your first record.</p>
+          </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  function confirmAction(msg, cb){ try{ cb(window.confirm(msg)); } catch(e){ cb(false);} }
+  window.confirmAction = confirmAction;
+
+  window.deleteRecord = function(id){
+    fetch(`/production/${id}/delete`, { method: 'POST', headers: {'Accept':'application/json'} })
+      .then(r => r.json().catch(()=>({}))).then(j => {
+        if (j && j.ok) location.reload(); else alert('Delete failed');
+      }).catch(e => { console.error(e); alert('Delete failed'); });
+  };
+})();
+</script>
+{% endblock %}

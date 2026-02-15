@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings{% endblock %}
+{% block page_title %}System Settings{% endblock %}
+{% block page_subtitle %}Configure system preferences and options{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="list-group mb-4">
+            <a href="#general" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                <i class="fas fa-cog me-2"></i> General Settings
+            </a>
+            <a href="#users" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-users me-2"></i> User Management
+            </a>
+            <a href="#farm" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-tractor me-2"></i> Farm Settings
+            </a>
+            <a href="#notifications" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-bell me-2"></i> Notifications
+            </a>
+            <a href="#backup" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-database me-2"></i> Backup & Restore
+            </a>
+            <a href="#system" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                <i class="fas fa-server me-2"></i> System Information
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="tab-content">
+            <!-- General Settings -->
+            <div class="tab-pane fade show active" id="general">
+                <div class="content-card">
+                    <h4 class="mb-4">General Settings</h4>
+                    <form method="POST" action="{{ url_for('update_settings') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Farm Name *</label>
+                            <input type="text" class="form-control" name="farm_name" value="DL Farm" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Currency</label>
+                            <select class="form-select" name="currency">
+                                <option value="KES" selected>Kenyan Shilling (KES)</option>
+                                <option value="USD">US Dollar (USD)</option>
+                                <option value="EUR">Euro (EUR)</option>
+                                <option value="GBP">British Pound (GBP)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date Format</label>
+                            <select class="form-select" name="date_format">
+                                <option value="YYYY-MM-DD">2025-10-12 (YYYY-MM-DD)</option>
+                                <option value="DD/MM/YYYY">12/10/2025 (DD/MM/YYYY)</option>
+                                <option value="MM/DD/YYYY">10/12/2025 (MM/DD/YYYY)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Time Zone</label>
+                            <select class="form-select" name="timezone">
+                                <option value="Africa/Nairobi" selected>East Africa Time (GMT+3)</option>
+                                <option value="UTC">UTC</option>
+                                <option value="America/New_York">Eastern Time (GMT-5)</option>
+                                <option value="Europe/London">London (GMT+1)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Language</label>
+                            <select class="form-select" name="language">
+                                <option value="en" selected>English</option>
+                                <option value="sw">Swahili</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- User Management -->
+            <div class="tab-pane fade" id="users">
+                <div class="content-card">
+                    <h4 class="mb-4">User Management</h4>
+                    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                        <i class="fas fa-user-plus"></i> Add New User
+                    </button>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Last Login</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>admin</td>
+                                    <td>System Administrator</td>
+                                    <td>admin@dlfarm.com</td>
+                                    <td><span class="badge bg-danger">Administrator</span></td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td>Today, 09:15 AM</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>manager</td>
+                                    <td>Farm Manager</td>
+                                    <td>manager@dlfarm.com</td>
+                                    <td><span class="badge bg-primary">Manager</span></td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td>Today, 08:30 AM</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>accountant</td>
+                                    <td>Farm Accountant</td>
+                                    <td>accountant@dlfarm.com</td>
+                                    <td><span class="badge bg-success">Accountant</span></td>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                    <td>Yesterday, 10:45 AM</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Farm Settings -->
+            <div class="tab-pane fade" id="farm">
+                <div class="content-card">
+                    <h4 class="mb-4">Farm Configuration</h4>
+                    <form method="POST" action="{{ url_for('update_settings') }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Farm Type</label>
+                                    <select class="form-select" name="farm_type">
+                                        <option value="dairy">Dairy Farm</option>
+                                        <option value="beef">Beef Farm</option>
+                                        <option value="mixed">Mixed Farming</option>
+                                        <option value="poultry">Poultry Farm</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Farm Size (Acres)</label>
+                                    <input type="number" class="form-control" name="farm_size" value="50">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Farm Address</label>
+                            <textarea class="form-control" name="farm_address" rows="2">Nakuru, Kenya</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contact Phone</label>
+                            <input type="tel" class="form-control" name="contact_phone" value="+254 700 000 000">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contact Email</label>
+                            <input type="email" class="form-control" name="contact_email" value="info@dlfarm.co.ke">
+                        </div>
+                        <h5 class="mt-4 mb-3">Default Units</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Weight Unit</label>
+                                    <select class="form-select" name="weight_unit">
+                                        <option value="kg" selected>Kilograms (kg)</option>
+                                        <option value="lbs">Pounds (lbs)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Volume Unit</label>
+                                    <select class="form-select" name="volume_unit">
+                                        <option value="liters" selected>Liters</option>
+                                        <option value="gallons">Gallons</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Distance Unit</label>
+                                    <select class="form-select" name="distance_unit">
+                                        <option value="meters" selected>Meters</option>
+                                        <option value="feet">Feet</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Notifications -->
+            <div class="tab-pane fade" id="notifications">
+                <div class="content-card">
+                    <h4 class="mb-4">Notification Settings</h4>
+                    <form method="POST" action="{{ url_for('update_settings') }}">
+                        <div class="mb-3">
+                            <h6>Email Notifications</h6>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="emailAlerts" checked>
+                                <label class="form-check-label" for="emailAlerts">Enable Email Alerts</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="dailyReports" checked>
+                                <label class="form-check-label" for="dailyReports">Daily Summary Reports</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="weeklyReports">
+                                <label class="form-check-label" for="weeklyReports">Weekly Analysis Reports</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>Alert Types</h6>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="healthAlerts" checked>
+                                <label class="form-check-label" for="healthAlerts">Animal Health Alerts</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="feedAlerts" checked>
+                                <label class="form-check-label" for="feedAlerts">Low Feed Stock Alerts</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="breedingAlerts">
+                                <label class="form-check-label" for="breedingAlerts">Breeding Schedule Alerts</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="taskAlerts" checked>
+                                <label class="form-check-label" for="taskAlerts">Task Due Date Alerts</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Alert Email Addresses (comma separated)</label>
+                            <textarea class="form-control" rows="3" name="alert_emails">admin@dlfarm.com, manager@dlfarm.com</textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Backup & Restore -->
+            <div class="tab-pane fade" id="backup">
+                <div class="content-card">
+                    <h4 class="mb-4">Backup & Restore</h4>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Last backup: <strong>2025-10-10 23:00</strong> | Next scheduled backup: <strong>Today, 23:00</strong>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-download fa-3x text-primary mb-3"></i>
+                                    <h5>Create Backup</h5>
+                                    <p class="text-muted">Create a manual backup of all farm data</p>
+                                    <button class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Backup Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-upload fa-3x text-success mb-3"></i>
+                                    <h5>Restore Backup</h5>
+                                    <p class="text-muted">Restore data from a previous backup</p>
+                                    <button class="btn btn-success">
+                                        <i class="fas fa-history"></i> Restore
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3">Recent Backups</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Backup Date</th>
+                                    <th>File Name</th>
+                                    <th>Size</th>
+                                    <th>Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2025-10-10 23:00</td>
+                                    <td>dlfarm_backup_20251010.sql</td>
+                                    <td>15.2 MB</td>
+                                    <td><span class="badge bg-success">Automatic</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-download"></i></button>
+                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>2025-10-03 23:00</td>
+                                    <td>dlfarm_backup_20251003.sql</td>
+                                    <td>14.8 MB</td>
+                                    <td><span class="badge bg-success">Automatic</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-download"></i></button>
+                                        <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>Backup Schedule</h5>
+                        <form method="POST" action="{{ url_for('update_settings') }}">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Automatic Backups</label>
+                                        <select class="form-select" name="backup_frequency">
+                                            <option value="daily" selected>Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="monthly">Monthly</option>
+                                            <option value="never">Never (Manual Only)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Backup Time</label>
+                                        <input type="time" class="form-control" name="backup_time" value="23:00">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Keep Backups For</label>
+                                <select class="form-select" name="retention">
+                                    <option value="7">7 days</option>
+                                    <option value="30" selected>30 days</option>
+                                    <option value="90">90 days</option>
+                                    <option value="365">1 year</option>
+                                    <option value="forever">Keep Forever</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Schedule</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Information -->
+            <div class="tab-pane fade" id="system">
+                <div class="content-card">
+                    <h4 class="mb-4">System Information</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-server me-2"></i>System Details</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>Application Version:</td>
+                                            <td><strong>DL Farm Management v2.1</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Database Version:</td>
+                                            <td>SQLite 3.37.2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Python Version:</td>
+                                            <td>3.11.0</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Flask Version:</td>
+                                            <td>2.3.2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Last Updated:</td>
+                                            <td>2025-10-01</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-database me-2"></i>Database Status</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>Total Records:</td>
+                                            <td><strong>1,245</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Database Size:</td>
+                                            <td>15.2 MB</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Last Optimized:</td>
+                                            <td>2025-10-05</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Integrity Check:</td>
+                                            <td><span class="badge bg-success">OK</span></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>System Maintenance</h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-warning">
+                                <i class="fas fa-sync"></i> Optimize Database
+                            </button>
+                            <button class="btn btn-info">
+                                <i class="fas fa-search"></i> Check System Health
+                            </button>
+                            <button class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Clear Cache
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>Support & Updates</h5>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>System Status:</strong> All systems operational.
+                            <a href="#" class="float-end">Check for Updates</a>
+                        </div>
+                        <p>For technical support, contact: <strong>support@dlfarm.co.ke</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_user') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">First Name *</label>
+                                <input type="text" class="form-control" name="first_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" name="last_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email Address *</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role *</label>
+                        <select class="form-select" name="role" required>
+                            <option value="">Select Role</option>
+                            <option value="admin">Administrator</option>
+                            <option value="manager">Manager</option>
+                            <option value="accountant">Accountant</option>
+                            <option value="staff">Staff</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password *</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password *</label>
+                        <input type="password" class="form-control" name="confirm_password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tab switching with URL hash support
+document.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash;
+    if (hash) {
+        const tab = document.querySelector(`.list-group-item[href="${hash}"]`);
+        if (tab) {
+            const tabTrigger = new bootstrap.Tab(tab);
+            tabTrigger.show();
+        }
+    }
+    
+    // Update URL hash when tab changes
+    const tabLinks = document.querySelectorAll('.list-group-item[data-bs-toggle="list"]');
+    tabLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            window.location.hash = this.getAttribute('href');
+        });
+    });
+});
+</script>
+{% endblock %}

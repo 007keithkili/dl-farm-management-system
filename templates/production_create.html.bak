@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% if creating is not defined %}{% set creating = True %}{% endif %}
+{% if record is not defined %}{% set record = None %}{% endif %}
+{% if animals is not defined %}{% set animals = {} %}{% endif %}
+
+{% block title %}{{ 'Add Production' if creating else 'Edit Production' }}{% endblock %}
+{% block page_title %}{{ 'Add Production' if creating else 'Edit Production' }}{% endblock %}
+{% block page_subtitle %}Record yields (milk/weight) for animals{% endblock %}
+
+{% block extra_css %}
+<style>
+.content-card{padding:20px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.04);}
+.form-row {display:grid;grid-template-columns: repeat(2,1fr);gap:12px;}
+@media (max-width:720px){.form-row{grid-template-columns:1fr}}
+.small-muted{color:#6b7280;font-size:0.9rem}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 style="margin:0;">{{ 'Add Production' if creating else 'Edit Production' }}</h4>
+      <p class="text-muted mb-0">Select animal and enter production details</p>
+    </div>
+    <div><a class="btn btn-outline-secondary" href="{{ url_for('production_list') }}">Back</a></div>
+  </div>
+
+  <form method="POST" action="{{ url_for('production_create') if creating else url_for('edit_production', production_id=record.id) }}">
+    <div class="form-row">
+      <div>
+        <label class="form-label">Animal (tag/name) *</label>
+        <select name="animal_tag" class="form-select" required>
+          <option value="">{{ 'Select animal' }}</option>
+          {% for cat, tags in animals.items() %}
+            <optgroup label="{{ cat }}">
+              {% for tag in tags %}
+                <option value="{{ tag }}" {% if record and (record.animal_tag == tag or record.tag == tag) %}selected{% endif %}>{{ tag }}</option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+        <small class="small-muted">Choose the animal producing the yield</small>
+      </div>
+
+      <div>
+        <label class="form-label">Category</label>
+        <input name="category" class="form-control" value="{{ record.category if record else '' }}" placeholder="e.g., Active milker 8L+">
+        <small class="small-muted">Optional — auto-filled when you select animal</small>
+      </div>
+
+      <div>
+        <label class="form-label">Production type</label>
+        <select name="production_type" class="form-select">
+          <option value="milk" {% if record and record.production_type=='milk' %}selected{% endif %}>Milk</option>
+          <option value="weight" {% if record and record.production_type=='weight' %}selected{% endif %}>Weight</option>
+          <option value="eggs" {% if record and record.production_type=='eggs' %}selected{% endif %}>Eggs</option>
+          <option value="other" {% if record and record.production_type=='other' %}selected{% endif %}>Other</option>
+        </select>
+        <small class="small-muted">What kind of production is being recorded</small>
+      </div>
+
+      <div>
+        <label class="form-label">Quantity</label>
+        <input name="quantity" type="number" step="0.01" class="form-control" value="{{ record.quantity if record else '' }}">
+      </div>
+
+      <div>
+        <label class="form-label">Unit</label>
+        <input name="unit" class="form-control" value="{{ record.unit if record else 'L' }}">
+        <small class="small-muted">e.g., L (litres), kg, pieces</small>
+      </div>
+
+      <div>
+        <label class="form-label">Production date</label>
+        <input name="production_date" class="form-control" type="date" value="{{ record.production_date if record else '' }}">
+      </div>
+
+      <div style="grid-column:1 / -1;">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="3">{{ record.notes if record else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="mt-3" style="display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn btn-primary" type="submit">{{ 'Record' if creating else 'Save Changes' }}</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('production_list') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const animalSelect = document.querySelector('select[name="animal_tag"]');
+  const categoryInput = document.querySelector('input[name="category"]');
+  if (!animalSelect) return;
+
+  const mapping = {};
+  {% for cat, tags in animals.items() %}
+    {% for tag in tags %}
+      mapping["{{ tag|escape }}"] = "{{ cat|escape }}";
+    {% endfor %}
+  {% endfor %}
+
+  animalSelect.addEventListener('change', function(){
+    const v = this.value;
+    if (mapping[v]) categoryInput.value = mapping[v];
+  });
+});
+</script>
+{% endblock %}

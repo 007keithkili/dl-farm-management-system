@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% if record is not defined %}{% set record = None %}{% endif %}
+{% if history is not defined %}{% set history = [] %}{% endif %}
+
+{% block title %}Production Detail{% endblock %}
+{% block page_title %}Production Detail{% endblock %}
+{% block page_subtitle %}Details and history for production record{% endblock %}
+
+{% block extra_css %}
+<style>
+.content-card{padding:20px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.04);}
+.detail-row{display:flex;gap:16px;flex-wrap:wrap;}
+.detail-card{flex:1;min-width:220px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.03);}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 style="margin:0;">Production #{{ record.id if record else '—' }}</h4>
+      <p class="text-muted mb-0">Animal: {{ record.animal_tag or record.tag if record else '—' }} • Category: {{ record.category or '—' }}</p>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a class="btn btn-outline-secondary" href="{{ url_for('production_list') }}">Back</a>
+      {% if record %}
+        <a class="btn btn-outline-warning" href="{{ url_for('edit_production', production_id=record.id) }}">Edit</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-row mb-3">
+    <div class="detail-card">
+      <div class="text-muted">Type</div>
+      <div style="font-weight:700">{{ (record.production_type or (record.liters and 'milk'))|capitalize if record else '—' }}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="text-muted">Quantity</div>
+      <div style="font-weight:800; font-size:1.6rem;">{{ record.quantity or record.liters or 0 }} {{ record.unit or '' }}</div>
+    </div>
+
+    <div class="detail-card">
+      <div class="text-muted">Date</div>
+      <div>{{ record.production_date or record.date or record.created_at or '—' }}</div>
+      <div style="margin-top:8px;"><small class="text-muted">Recorded: {{ record.created_at or '—' }}</small></div>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <h6>Notes</h6>
+    <div>{{ record.notes or '—' }}</div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header">Recent production for this animal</div>
+    <div class="card-body">
+      {% if history %}
+        <ul class="list-group">
+          {% for h in history %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <div><strong>{{ h.production_date or h.date or h.created_at }}</strong> — {{ (h.production_type or 'milk')|capitalize }}, {{ h.quantity or h.liters }} {{ h.unit or '' }}</div>
+                <small class="text-muted">{{ h.notes or '' }}</small>
+              </div>
+              <div><a class="btn btn-sm btn-outline-info" href="{{ url_for('view_production', production_id=h.id) }}">View</a></div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="text-center text-muted p-3">No other records for this animal.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

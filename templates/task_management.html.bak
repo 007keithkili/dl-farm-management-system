@@ -11,13 +11,10 @@
 .stat-card i { font-size:22px; display:block; margin-bottom:6px; }
 .controls-row { display:flex; gap:8px; align-items:center; }
 #viewControls { display:flex; gap:8px; align-items:center; }
-#chartsArea { display:none; margin-top:14px; }
-.chart-card { background:#fff; padding:12px; border-radius:10px; box-shadow:0 8px 18px rgba(2,6,23,0.04); }
 .small-muted { color:#6b7280; font-size:0.88rem; }
 
-/* keep table and charts responsive */
-#chartsRow { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-@media (max-width:900px){ #chartsRow { grid-template-columns:1fr; } }
+/* Sector toggle styles: collapsed state */
+#toggleSector.collapsed { display: none; }
 
 /* hide non-print UI when printing, show just the printable area */
 @media print {
@@ -37,8 +34,8 @@
     </div>
 
     <div id="viewControls" class="controls-row">
-      <button id="toggleViewBtn" class="btn btn-outline-secondary btn-sm" title="Toggle charts / table">
-        <i class="fas fa-chart-bar"></i> Toggle View
+      <button id="toggleViewBtn" class="btn btn-outline-secondary btn-sm" title="Toggle table sector">
+        <i class="fas fa-compress-arrows-alt"></i> Toggle View
       </button>
 
       <button id="printBtn" class="btn btn-outline-primary btn-sm" title="Print visible">
@@ -86,139 +83,121 @@
     </div>
   </div>
 
-  <!-- PRINTABLE AREA (charts + table inside for focused printing) -->
+  <!-- PRINTABLE AREA -->
   <div id="printArea">
-    <!-- Charts (initially hidden; toggled by button) -->
-    <div id="chartsArea" class="mb-3">
-      <div id="chartsRow">
-        <div class="chart-card">
-          <h6 style="margin:0 0 10px 0;">Tasks by Status</h6>
-          <canvas id="statusDonut" style="height:220px;"></canvas>
-        </div>
-
-        <div class="chart-card">
-          <h6 style="margin:0 0 10px 0;">Priorities</h6>
-          <canvas id="priorityBar" style="height:220px;"></canvas>
-        </div>
-
-        <div class="chart-card" style="grid-column: 1 / -1;">
-          <h6 style="margin:0 0 10px 0;">Top Categories</h6>
-          <canvas id="categoryBar" style="height:240px;"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Table (default visible) -->
-    <div class="table-responsive mb-2" id="tableArea">
-      <!-- DataTables picks up .data-table from base.html -->
-      <table class="table table-hover data-table" id="tasksTable">
-        <thead class="table-dark">
-          <tr>
-            <th>Task ID</th>
-            <th>Title</th>
-            <th>Assigned To</th>
-            <th>Due Date</th>
-            <th>Priority</th>
-            <th>Category</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tfoot class="table-dark">
-          <tr>
-            <th>Task ID</th>
-            <th>Title</th>
-            <th>Assigned To</th>
-            <th>Due Date</th>
-            <th>Priority</th>
-            <th>Category</th>
-            <th>Actions</th>
-          </tr>
-        </tfoot>
-
-        <tbody>
-          {% if tasks %}
-            {% for t in tasks %}
-            <tr data-task-id="{{ t.id }}">
-              <td>T-{{ t.id }}</td>
-
-              <!-- Title cell (title + small description) -->
-              <td style="min-width:220px;">
-                <div style="font-weight:600;">{{ t.title }}</div>
-                {% if t.description %}
-                  <div class="text-muted small">{{ t.description }}</div>
-                {% endif %}
-              </td>
-
-              <!-- Assigned To: robust lookup that handles missing staff_map and key-type mismatches -->
-              <td>
-                {% set assigned_display = None %}
-                {% if staff_map is defined %}
-                  {% if t.assigned_to is not none %}
-                    {% set assigned_display = staff_map.get(t.assigned_to) %}
-                  {% endif %}
-                  {% if not assigned_display and t.assigned_to is not none %}
-                    {% set assigned_display = staff_map.get((t.assigned_to ~ '')) %}
-                  {% endif %}
-                {% endif %}
-                {% if assigned_display %}
-                  {{ assigned_display }}
-                {% else %}
-                  {{ t.assigned_to or 'Unassigned' }}
-                {% endif %}
-              </td>
-
-              <!-- Due date -->
-              <td>{{ t.due_date or '—' }}</td>
-
-              <!-- Priority with badge -->
-              <td>
-                {% set p = (t.priority or 'Normal') %}
-                {% if p == 'High' %}
-                  <span class="badge bg-danger">{{ p }}</span>
-                {% elif p == 'Normal' %}
-                  <span class="badge bg-info">{{ p }}</span>
-                {% else %}
-                  <span class="badge bg-secondary">{{ p }}</span>
-                {% endif %}
-              </td>
-
-              <!-- Category -->
-              <td>{{ t.category or 'general' }}</td>
-
-              <!-- Actions: view / edit / delete + status buttons -->
-              <td>
-                <div style="display:flex; gap:6px; align-items:center;">
-                  <a href="/tasks/{{ t.id }}" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>
-                  <a href="/tasks/{{ t.id }}/edit" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
-
-                  <button class="btn btn-sm btn-danger" title="Delete" onclick="deleteTask({{ t.id }}, this)"><i class="fas fa-trash"></i></button>
-
-                  {% if t.status != 'In Progress' %}
-                    <button class="btn btn-sm btn-success" title="Mark In Progress"
-                            onclick="updateTaskStatus({{ t.id }}, 'In Progress')"><i class="fas fa-play"></i></button>
-                  {% else %}
-                    <button class="btn btn-sm btn-outline-success" disabled title="Already In Progress"><i class="fas fa-play"></i></button>
-                  {% endif %}
-
-                  {% if t.status != 'Completed' %}
-                    <button class="btn btn-sm btn-primary" title="Mark Completed"
-                            onclick="updateTaskStatus({{ t.id }}, 'Completed')"><i class="fas fa-check"></i></button>
-                  {% else %}
-                    <button class="btn btn-sm btn-outline-primary" disabled title="Already Completed"><i class="fas fa-check"></i></button>
-                  {% endif %}
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          {% else %}
+    <!-- TARGET SECTOR (the area from your screenshot). Toggle hides/shows this element -->
+    <div id="toggleSector">
+      <div class="table-responsive mb-2" id="tableArea">
+        <!-- DataTables picks up .data-table from base.html -->
+        <table class="table table-hover data-table" id="tasksTable">
+          <thead class="table-dark">
             <tr>
-              <td colspan="7" class="text-center">No tasks found.</td>
+              <th>Task ID</th>
+              <th>Title</th>
+              <th>Assigned To</th>
+              <th>Due Date</th>
+              <th>Priority</th>
+              <th>Category</th>
+              <th>Actions</th>
             </tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+
+          <tfoot class="table-dark">
+            <tr>
+              <th>Task ID</th>
+              <th>Title</th>
+              <th>Assigned To</th>
+              <th>Due Date</th>
+              <th>Priority</th>
+              <th>Category</th>
+              <th>Actions</th>
+            </tr>
+          </tfoot>
+
+          <tbody>
+            {% if tasks %}
+              {% for t in tasks %}
+              <tr data-task-id="{{ t.id }}">
+                <td>T-{{ t.id }}</td>
+
+                <!-- Title cell (title + small description) -->
+                <td style="min-width:220px;">
+                  <div style="font-weight:600;">{{ t.title }}</div>
+                  {% if t.description %}
+                    <div class="text-muted small">{{ t.description }}</div>
+                  {% endif %}
+                </td>
+
+                <!-- Assigned To: robust lookup that handles missing staff_map and key-type mismatches -->
+                <td>
+                  {% set assigned_display = None %}
+                  {% if staff_map is defined %}
+                    {% if t.assigned_to is not none %}
+                      {% set assigned_display = staff_map.get(t.assigned_to) %}
+                    {% endif %}
+                    {% if not assigned_display and t.assigned_to is not none %}
+                      {% set assigned_display = staff_map.get((t.assigned_to ~ '')) %}
+                    {% endif %}
+                  {% endif %}
+                  {% if assigned_display %}
+                    {{ assigned_display }}
+                  {% else %}
+                    {{ t.assigned_to or 'Unassigned' }}
+                  {% endif %}
+                </td>
+
+                <!-- Due date -->
+                <td>{{ t.due_date or '—' }}</td>
+
+                <!-- Priority with badge -->
+                <td>
+                  {% set p = (t.priority or 'Normal') %}
+                  {% if p == 'High' %}
+                    <span class="badge bg-danger">{{ p }}</span>
+                  {% elif p == 'Normal' %}
+                    <span class="badge bg-info">{{ p }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ p }}</span>
+                  {% endif %}
+                </td>
+
+                <!-- Category -->
+                <td>{{ t.category or 'general' }}</td>
+
+                <!-- Actions: view / edit / delete + status buttons -->
+                <td>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <a href="/tasks/{{ t.id }}" class="btn btn-sm btn-info" title="View"><i class="fas fa-eye"></i></a>
+                    <a href="/tasks/{{ t.id }}/edit" class="btn btn-sm btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
+
+                    <button class="btn btn-sm btn-danger" title="Delete" onclick="deleteTask({{ t.id }}, this)"><i class="fas fa-trash"></i></button>
+
+                    {% if t.status != 'In Progress' %}
+                      <button class="btn btn-sm btn-success" title="Mark In Progress"
+                              onclick="updateTaskStatus({{ t.id }}, 'In Progress')"><i class="fas fa-play"></i></button>
+                    {% else %}
+                      <button class="btn btn-sm btn-outline-success" disabled title="Already In Progress"><i class="fas fa-play"></i></button>
+                    {% endif %}
+
+                    {% if t.status != 'Completed' %}
+                      <button class="btn btn-sm btn-primary" title="Mark Completed"
+                              onclick="updateTaskStatus({{ t.id }}, 'Completed')"><i class="fas fa-check"></i></button>
+                    {% else %}
+                      <button class="btn btn-sm btn-outline-primary" disabled title="Already Completed"><i class="fas fa-check"></i></button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="7" class="text-center">No tasks found.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div> <!-- end toggleSector -->
   </div> <!-- end printArea -->
 </div>
 
@@ -291,97 +270,22 @@
 
 {% block extra_js %}
 <script>
-// Provide tasks data to JS
-const tasksData = {{ tasks|default([])|tojson }};
+// Tasks JSON for JS use (charts removed so kept for other client use)
+const tasksData = {{ tasks_json|default([])|tojson }};
 
-function ensureChartJs(cb){
-  if (typeof Chart !== 'undefined') return cb();
-  const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-  s.onload = cb;
-  document.head.appendChild(s);
-}
-
-/* ---------- Chart initialization ---------- */
-function initCharts(){
-  // status counts (we also have server counts in variables, but derive from tasks for consistency)
-  const statusCounts = { Pending:0, 'In Progress':0, Completed:0, Overdue:0 };
-  const priorityCounts = { High:0, Normal:0, Low:0 };
-  const categoryCounts = {};
-
-  tasksData.forEach(t => {
-    const st = t.status || 'Pending';
-    statusCounts[st] = (statusCounts[st]||0) + 1;
-    // Overdue detection: if due_date exists and < today (basic compare)
-    if (t.due_date) {
-      try {
-        const d = new Date(t.due_date);
-        const now = new Date();
-        if (!isNaN(d) && d < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-          statusCounts.Overdue = (statusCounts.Overdue||0) + 1;
-        }
-      } catch(e){}
-    }
-    const pr = (t.priority || 'Normal');
-    priorityCounts[pr] = (priorityCounts[pr]||0) + 1;
-
-    const cat = (t.category || 'general');
-    categoryCounts[cat] = (categoryCounts[cat]||0) + 1;
-  });
-
-  // Status donut
-  const ctxStatus = document.getElementById('statusDonut');
-  if (ctxStatus) {
-    new Chart(ctxStatus, {
-      type: 'doughnut',
-      data: {
-        labels: Object.keys(statusCounts),
-        datasets: [{ data: Object.values(statusCounts) }]
-      },
-      options: { plugins:{ legend:{ position:'bottom' } }, cutout: '60%' }
-    });
-  }
-
-  // Priority bar
-  const ctxPri = document.getElementById('priorityBar');
-  if (ctxPri) {
-    new Chart(ctxPri, {
-      type: 'bar',
-      data: { labels: Object.keys(priorityCounts), datasets: [{ label:'Tasks', data: Object.values(priorityCounts) }] },
-      options: { plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
-    });
-  }
-
-  // Categories (top 8)
-  const cats = Object.entries(categoryCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const labels = cats.map(c=>c[0]);
-  const vals = cats.map(c=>c[1]);
-  const ctxCat = document.getElementById('categoryBar');
-  if (ctxCat) {
-    new Chart(ctxCat, {
-      type: 'bar',
-      data: { labels: labels, datasets: [{ label:'Count', data: vals }] },
-      options: { plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } }, indexAxis: 'x' }
-    });
-  }
-}
-
-/* ---------- Toggle view / Print / Export ---------- */
+/* Toggle the specific sector (wrap from screenshot) */
 document.addEventListener('DOMContentLoaded', function(){
   const toggleBtn = document.getElementById('toggleViewBtn');
-  const chartsArea = document.getElementById('chartsArea');
-  const tableArea = document.getElementById('tableArea');
+  const toggleSector = document.getElementById('toggleSector');
 
   toggleBtn?.addEventListener('click', function(){
-    if (chartsArea.style.display === 'none' || chartsArea.style.display === '') {
-      chartsArea.style.display = 'block';
-      tableArea.style.display = 'none';
-      ensureChartJs(initCharts);
-      toggleBtn.innerHTML = '<i class="fas fa-table"></i> Table View';
+    if (!toggleSector) return;
+    toggleSector.classList.toggle('collapsed');
+    // Update button label/icon for clarity
+    if (toggleSector.classList.contains('collapsed')) {
+      toggleBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i> Show Table';
     } else {
-      chartsArea.style.display = 'none';
-      tableArea.style.display = 'block';
-      toggleBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Toggle View';
+      toggleBtn.innerHTML = '<i class="fas fa-compress-arrows-alt"></i> Hide Table';
     }
   });
 
@@ -390,8 +294,8 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 
   document.getElementById('exportCsvBtn')?.addEventListener('click', function(){
-    // Simple CSV export of current table rows
-    const rows = Array.from(document.querySelectorAll('#tasksTable tbody tr'));
+    // Simple CSV export of current table rows inside the toggled sector
+    const rows = Array.from(document.querySelectorAll('#toggleSector #tasksTable tbody tr'));
     const csv = [];
     rows.forEach(r => {
       const cols = Array.from(r.querySelectorAll('td')).map(td => '"' + td.innerText.replace(/"/g,'""') + '"');
@@ -403,13 +307,6 @@ document.addEventListener('DOMContentLoaded', function(){
     const a = document.createElement('a'); a.href = url; a.download = 'tasks_export.csv'; a.style.display='none';
     document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();
   });
-
-  // Make sure charts are available if user toggles immediately and Chart.js not yet loaded
-  if (typeof Chart === 'undefined') {
-    // don't automatically init charts until user toggles (keeps page light)
-  } else {
-    // Chart.js already loaded by base - nothing to do
-  }
 });
 
 /* ---------- Delete task (POST form-style so server accepts it reliably) ---------- */

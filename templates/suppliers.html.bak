@@ -1,0 +1,876 @@
+{% extends "base.html" %}
+{% block title %}Suppliers{% endblock %}
+{% block page_title %}Suppliers{% endblock %}
+{% block page_subtitle %}Supplier list and contacts{% endblock %}
+
+{% block content %}
+<!-- Enhanced Supplier Dashboard -->
+<div class="content-card mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h4 class="mb-3"><i class="fas fa-truck text-primary me-2"></i>Supplier Management</h4>
+            <p class="text-muted mb-3">
+                Manage all your farm suppliers, track products, and maintain contact information. 
+                Ensure smooth supply chain operations with organized supplier records.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">
+                    <i class="fas fa-warehouse me-1"></i>Inventory Partners
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                    <i class="fas fa-seedling me-1"></i>Seed Suppliers
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                    <i class="fas fa-tools me-1"></i>Equipment Vendors
+                </span>
+                <span class="badge bg-info bg-opacity-10 text-info border border-info">
+                    <i class="fas fa-prescription-bottle me-1"></i>Chemical Suppliers
+                </span>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="card border-primary">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-handshake fa-2x text-primary mb-2"></i>
+                    <h6 class="mb-1">Quick Actions</h6>
+                    <small class="text-muted d-block mb-2">Add new suppliers or view reports</small>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                        <i class="fas fa-plus me-1"></i>New Supplier
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-primary bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Suppliers</h6>
+                        <h2 class="mb-0">{{ suppliers|length if suppliers else 0 }}</h2>
+                    </div>
+                    <i class="fas fa-users fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">All registered suppliers</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-success bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Active Contacts</h6>
+                        <h2 class="mb-0">
+                            {% set contact_count = 0 %}
+                            {% if suppliers %}
+                                {% for s in suppliers %}
+                                    {% if s.phone and s.phone|length > 5 %}
+                                        {% set contact_count = contact_count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {{ contact_count }}
+                        </h2>
+                    </div>
+                    <i class="fas fa-phone fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">With contact info</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-info bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Product Categories</h6>
+                        <h2 class="mb-0">
+                            {% set categories = [] %}
+                            {% if suppliers %}
+                                {% for s in suppliers %}
+                                    {% if s.products and s.products not in categories %}
+                                        {% set _ = categories.append(s.products) %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {{ categories|length }}
+                        </h2>
+                    </div>
+                    <i class="fas fa-tags fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Different product types</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card bg-warning bg-gradient text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Recent Additions</h6>
+                        <h2 class="mb-0">
+                            {# Count up to 5 suppliers that have created_at (safe Jinja loop) #}
+                            {% set recent_count = 0 %}
+                            {% if suppliers %}
+                                {% for supplier in suppliers %}
+                                    {% if supplier.created_at and recent_count < 5 %}
+                                        {% set recent_count = recent_count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {{ recent_count }}
+                        </h2>
+                    </div>
+                    <i class="fas fa-clock fa-2x opacity-50"></i>
+                </div>
+                <small class="text-white-75">Last 30 days</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Records with Toggle View -->
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0">Supplier Directory</h4>
+            <p class="text-muted mb-0">Manage all your suppliers with contact details and product information.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" id="toggleViewBtn">
+                <i class="fas fa-table me-2"></i>Toggle Table View
+            </button>
+
+            <!-- PRINT button (added) -->
+            <button class="btn btn-outline-primary" id="printBtn" title="Print supplier report">
+                <i class="fas fa-print me-2"></i> Print
+            </button>
+
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                <i class="fas fa-plus me-2"></i> Add Supplier
+            </button>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <span class="me-3 text-muted small">Filter by:</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary active" id="filterAll">All</button>
+                    <button type="button" class="btn btn-outline-success" id="filterProducts">Product Type</button>
+                    <button type="button" class="btn btn-outline-info" id="filterRecent">Recent</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search suppliers..." id="searchInput">
+                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card View -->
+    <div class="row" id="cardView">
+        {% if suppliers %}
+            {% for s in suppliers %}
+            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mb-4 supplier-card" 
+                 data-products="{{ s.products|lower }}"
+                 data-company="{{ s.company_name|lower }}">
+                <div class="card h-100 border-top border-4 border-primary">
+                    <div class="card-body">
+                        <!-- Supplier Header -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="supplier-icon bg-primary-opacity-10 text-primary">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <span class="badge bg-secondary">SUP-{{ s.id }}</span>
+                        </div>
+                        
+                        <!-- Company Info -->
+                        <h6 class="card-title text-primary mb-2">{{ s.company_name|truncate(25) }}</h6>
+                        <p class="text-muted small mb-3">
+                            <i class="fas fa-user me-1"></i>{{ s.contact_person|truncate(20) }}
+                        </p>
+                        
+                        <!-- Contact Details -->
+                        <div class="mb-3">
+                            {% if s.phone %}
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="fas fa-phone text-muted me-2" style="width: 16px;"></i>
+                                <small class="text-muted">{{ s.phone }}</small>
+                            </div>
+                            {% endif %}
+                            {% if s.email %}
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-envelope text-muted me-2" style="width: 16px;"></i>
+                                <small class="text-muted text-truncate">{{ s.email|truncate(20) }}</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Products -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="fas fa-tags text-success me-2"></i>
+                                <small class="text-muted fw-semibold">Products:</small>
+                            </div>
+                            <div class="product-badge">
+                                {{ s.products|truncate(40) }}
+                            </div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div class="btn-group">
+                                <a href="{{ url_for('view_supplier', supplier_id=s.id) }}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if current_user.role == 'admin' %}
+                                <a href="{{ url_for('edit_supplier', supplier_id=s.id) }}" 
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger delete-supplier-btn" 
+                                        data-id="{{ s.id }}" 
+                                        data-name="{{ s.company_name }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                            {% if s.address %}
+                            <button class="btn btn-sm btn-outline-secondary" 
+                                    type="button"
+                                    data-bs-toggle="tooltip" 
+                                    title="{{ s.address }}">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <div class="supplier-icon-large bg-primary-opacity-10 text-primary mx-auto mb-3">
+                        <i class="fas fa-truck fa-3x"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No Suppliers Added</h4>
+                    <p class="text-muted mb-4">Start building your supplier network for better farm management</p>
+                    <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                        <i class="fas fa-plus me-2"></i> Add First Supplier
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Table View (Initially Hidden) -->
+    <div class="table-responsive d-none" id="tableView">
+        <table class="table table-hover table-sm" id="suppliersTable">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Company</th>
+                    <th>Contact Person</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Products</th>
+                    <th>Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                {% if suppliers %}
+                    {% for s in suppliers %}
+                    <tr class="supplier-row" 
+                        data-products="{{ s.products|lower }}"
+                        data-company="{{ s.company_name|lower }}">
+                        <td>
+                            <span class="badge bg-secondary">SUP-{{ s.id }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ s.company_name }}</strong>
+                        </td>
+                        <td>{{ s.contact_person }}</td>
+                        <td>
+                            {% if s.phone %}
+                            <a href="tel:{{ s.phone }}" class="text-decoration-none">
+                                <i class="fas fa-phone me-1"></i>{{ s.phone }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.email %}
+                            <a href="mailto:{{ s.email }}" class="text-decoration-none">
+                                <i class="fas fa-envelope me-1"></i>{{ s.email|truncate(20) }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                                {{ s.products|truncate(25) }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if s.address %}
+                            <div class="text-truncate" style="max-width: 150px;" title="{{ s.address }}">
+                                {{ s.address|truncate(30) }}
+                            </div>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a class="btn btn-info" href="{{ url_for('view_supplier', supplier_id=s.id) }}">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if current_user.role == 'admin' %}
+                                <a class="btn btn-warning" href="{{ url_for('edit_supplier', supplier_id=s.id) }}">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-danger delete-supplier-btn" 
+                                        data-id="{{ s.id }}" 
+                                        data-name="{{ s.company_name }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No suppliers found</h5>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if suppliers %}
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <small class="text-muted">Showing {{ suppliers|length }} supplier{% if suppliers|length != 1 %}s{% endif %}</small>
+        </div>
+        <div class="col-md-6 text-end">
+            <small class="text-muted">
+                <span class="badge bg-primary me-2">
+                    <i class="fas fa-building me-1"></i>Company
+                </span>
+                <span class="badge bg-success">
+                    <i class="fas fa-tags me-1"></i>Products
+                </span>
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Enhanced Add Supplier Modal -->
+<div class="modal fade" id="addSupplierModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Add Supplier</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_supplier') }}">
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Add supplier details to maintain an organized supply chain. All fields marked with * are required.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Company Name *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                <input name="company_name" class="form-control" required placeholder="e.g., Farm Supplies Ltd">
+                            </div>
+                            <small class="text-muted">Official company/business name</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Person *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input name="contact_person" class="form-control" required placeholder="e.g., John Smith">
+                            </div>
+                            <small class="text-muted">Primary contact person</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input name="phone" class="form-control" required placeholder="e.g., +254712345678">
+                            </div>
+                            <small class="text-muted">Primary contact number</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input name="email" type="email" class="form-control" placeholder="e.g., contact@company.com">
+                            </div>
+                            <small class="text-muted">Company email address</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Products *</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-tags"></i></span>
+                            <input name="products" class="form-control" required placeholder="e.g., Seeds, Fertilizers, Equipment">
+                        </div>
+                        <small class="text-muted">Products or services supplied</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                            <textarea name="address" class="form-control" rows="2" placeholder="e.g., 123 Business Street, Nairobi"></textarea>
+                        </div>
+                        <small class="text-muted">Physical address or location</small>
+                    </div>
+                    
+                    <!-- Additional Notes -->
+                    <div class="mb-3">
+                        <label class="form-label">Additional Notes</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-sticky-note"></i></span>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Any additional information about this supplier..."></textarea>
+                        </div>
+                        <small class="text-muted">Optional notes about the supplier</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-save me-2"></i>Save Supplier
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteSupplierModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete supplier: <strong id="deleteSupplierName"></strong>?</p>
+                <p class="text-danger small mb-0"><i class="fas fa-info-circle me-1"></i>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+                <form id="deleteSupplierForm" method="POST" style="display:inline;">
+                    <button class="btn btn-danger" type="submit">
+                        <i class="fas fa-trash me-1"></i>Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ------------------ Hidden printable sheet (server-rendered) ------------------ #}
+<div id="printableReport" class="d-none" aria-hidden="true">
+    <style>
+        /* Print page styles for report window */
+        @page { size: A4 portrait; margin: 20mm; }
+        body.report { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #222; }
+        .report .header { display:flex; align-items:center; gap:12px; margin-bottom: 8px; }
+        .report .logo { max-height:60px; max-width:160px; object-fit:contain; }
+        .report h1 { font-size:18px; margin:0 0 4px 0; }
+        .report .meta { font-size:12px; color:#666; margin-bottom:12px; }
+        .report-table { width:100%; border-collapse:collapse; font-size:12px; }
+        .report-table th, .report-table td { border: 1px solid #e6e6e6; padding:8px 6px; text-align:left; vertical-align:top; }
+        .report-table th { background:#f5f5f5; font-weight:600; }
+        .report-footer { margin-top:18px; font-size:12px; color:#555; border-top:1px solid #ddd; padding-top:8px; display:flex; justify-content:space-between; align-items:center; }
+        .report-small { font-size:11px; color:#666; }
+    </style>
+
+    <div class="report">
+        <div class="header">
+            {% if report_logo_url %}
+                <img src="{{ report_logo_url }}" alt="Logo" class="logo">
+            {% else %}
+                <div style="width:140px;height:60px;border-radius:6px;background:#e9ecef;display:flex;align-items:center;justify-content:center;font-weight:700;color:#567;">
+                    {{ report_company_name|default('Farm Management') }}
+                </div>
+            {% endif %}
+
+            <div>
+                <h1>{{ report_company_name|default('Farm Management — Suppliers Report') }}</h1>
+                <div class="meta">Generated: {{ (now()|default(caller=none)) if false else (now() if false else "") }}</div>
+            </div>
+        </div>
+
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th style="width:6%">#</th>
+                    <th style="width:28%">Company</th>
+                    <th style="width:18%">Contact</th>
+                    <th style="width:14%">Phone</th>
+                    <th style="width:18%">Email</th>
+                    <th style="width:16%">Products</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if suppliers %}
+                    {% for s in suppliers %}
+                    <tr>
+                        <td>SUP-{{ s.id }}</td>
+                        <td>{{ s.company_name }}</td>
+                        <td>{{ s.contact_person or '—' }}</td>
+                        <td>{{ s.phone or '—' }}</td>
+                        <td>{{ s.email or '—' }}</td>
+                        <td>{{ s.products|truncate(80) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="6" style="text-align:center;padding:20px;">No suppliers</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <div class="report-footer">
+            <div class="report-small">{{ report_footer_text|default('Confidential — for internal use only') }}</div>
+            <div class="report-small">Page 1 of 1</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Supplier-specific styles */
+    .supplier-card .card {
+        transition: all 0.2s ease;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .supplier-card:hover .card {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    
+    .supplier-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    
+    .supplier-icon-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+    }
+    
+    .product-badge {
+        background-color: rgba(25, 135, 84, 0.08);
+        color: #198754;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .supplier-card .card-body {
+        padding: 1rem;
+    }
+    
+    .supplier-card .card-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .supplier-card .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Grid adjustments for scalability */
+    @media (min-width: 1400px) {
+        .col-xl-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+    }
+    
+    @media (min-width: 1200px) and (max-width: 1399px) {
+        .col-xl-3 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+        }
+    }
+    
+    @media (min-width: 992px) and (max-width: 1199px) {
+        .col-lg-4 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+    
+    @media (min-width: 768px) and (max-width: 991px) {
+        .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+    
+    /* Table styling */
+    .table-primary {
+        background-color: #0d6efd !important;
+        color: white;
+    }
+    
+    .table-primary th {
+        background-color: #0d6efd !important;
+        border-color: #0b5ed7;
+    }
+    
+    .supplier-row:hover {
+        background-color: rgba(13, 110, 253, 0.05) !important;
+        cursor: pointer;
+    }
+    
+    /* Common styles */
+    .content-card { 
+        background: white; 
+        border-radius: 12px; 
+        padding: 1.5rem; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        margin-bottom: 1.5rem; 
+    }
+    
+    .border-top { border-top-width: 4px !important; }
+    .bg-primary-opacity-10 { background-color: rgba(13, 110, 253, 0.1) !important; }
+</style>
+
+<script>
+    // Toggle View Functionality
+    document.getElementById('toggleViewBtn')?.addEventListener('click', function() {
+        const cardView = document.getElementById('cardView');
+        const tableView = document.getElementById('tableView');
+        const button = this;
+        
+        if (cardView.classList.contains('d-none')) {
+            cardView.classList.remove('d-none'); 
+            tableView.classList.add('d-none');
+            button.innerHTML = '<i class="fas fa-table me-2"></i>Toggle Table View';
+        } else {
+            cardView.classList.add('d-none'); 
+            tableView.classList.remove('d-none');
+            button.innerHTML = '<i class="fas fa-th-large me-2"></i>Toggle Card View';
+        }
+    });
+
+    // Search Functionality
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase().trim();
+            
+            // Filter card view
+            document.querySelectorAll('.supplier-card').forEach(card => {
+                const cardText = card.textContent.toLowerCase();
+                card.style.display = cardText.includes(term) ? '' : 'none';
+            });
+            
+            // Filter table view
+            document.querySelectorAll('.supplier-row').forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                row.style.display = rowText.includes(term) ? '' : 'none';
+            });
+        });
+    }
+    
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (searchInput) searchInput.value = '';
+            
+            // Show all cards and rows
+            document.querySelectorAll('.supplier-card').forEach(card => {
+                card.style.display = '';
+            });
+            
+            document.querySelectorAll('.supplier-row').forEach(row => {
+                row.style.display = '';
+            });
+        });
+    }
+
+    // Filter Functionality
+    document.getElementById('filterAll')?.addEventListener('click', function() {
+        setActiveFilter(this);
+        showAllSuppliers();
+    });
+    
+    document.getElementById('filterRecent')?.addEventListener('click', function() {
+        setActiveFilter(this);
+        // For now, show all since we don't have date field
+        // In a real app, you would filter by created_at
+        showAllSuppliers();
+    });
+    
+    document.getElementById('filterProducts')?.addEventListener('click', function() {
+        setActiveFilter(this);
+        // This would filter by product type in a real implementation
+        // For now, show all
+        showAllSuppliers();
+    });
+    
+    function setActiveFilter(button) {
+        document.querySelectorAll('#filterAll, #filterProducts, #filterRecent').forEach(btn => {
+            btn.classList.remove('active');
+            btn.classList.remove('btn-primary', 'btn-success', 'btn-info');
+            btn.classList.add('btn-outline-primary');
+        });
+        
+        button.classList.add('active');
+        
+        if (button.id === 'filterProducts') {
+            button.classList.add('btn-success');
+        } else if (button.id === 'filterRecent') {
+            button.classList.add('btn-info');
+        } else {
+            button.classList.add('btn-primary');
+        }
+    }
+    
+    function showAllSuppliers() {
+        document.querySelectorAll('.supplier-card').forEach(card => card.style.display = '');
+        document.querySelectorAll('.supplier-row').forEach(row => row.style.display = '');
+    }
+
+    // Delete Supplier Functionality
+    document.querySelectorAll('.delete-supplier-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const supplierId = this.getAttribute('data-id');
+            const supplierName = this.getAttribute('data-name');
+            
+            document.getElementById('deleteSupplierName').textContent = supplierName;
+            
+            // Update form action
+            const form = document.getElementById('deleteSupplierForm');
+            form.action = `/supplier/${supplierId}/delete`;
+            
+            // Show modal
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteSupplierModal'));
+            deleteModal.show();
+        });
+    });
+
+    // Row click to view supplier
+    document.querySelectorAll('.supplier-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || 
+                e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+            
+            const viewBtn = this.querySelector('a[href*="view_supplier"]');
+            if (viewBtn) viewBtn.click();
+        });
+    });
+
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+
+    // ---------- Print functionality ----------
+    document.getElementById('printBtn')?.addEventListener('click', function () {
+        const printable = document.getElementById('printableReport');
+        if (!printable) { alert('Printable content not available'); return; }
+
+        // create new window for print
+        const w = window.open('', '_blank', 'height=800,width=1000,scrollbars=yes');
+        if (!w) { alert('Please allow popups to print the report.'); return; }
+
+        // Use the innerHTML of the server-rendered printable block (server side safe)
+        const html = `
+            <!doctype html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>${(document.title || 'Report')}</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    /* basic reset for print window */
+                    body { margin: 0; padding: 18px; color: #222; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+                    ${printable.querySelector('style') ? printable.querySelector('style').innerHTML : ''}
+                </style>
+            </head>
+            <body class="report">
+                ${printable.innerHTML}
+            </body>
+            </html>
+        `;
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+
+        // allow images to load briefly then print
+        w.focus();
+        setTimeout(() => {
+            w.print();
+            // optionally close after printing — leaving open for user to review
+            // w.close();
+        }, 600);
+    });
+</script>
+{% endblock %}
